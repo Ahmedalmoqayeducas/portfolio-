@@ -1,0 +1,194 @@
+        /* Custom Styles for aesthetic consistency */
+        .certificate-img {
+            width: 100px;
+            height: 70px;
+            background: #1a1a1a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #00ff0030;
+            transition: transform 0.3s ease;
+            overflow: hidden;
+        }
+
+        .certificate-img:hover {
+            transform: scale(1.8);
+            z-index: 10;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+        }
+
+        .certificate-img img {
+            transition: transform 0.3s ease;
+        }
+
+        .certificate-img:hover img {
+            transform: scale(1.1);
+        }
+
+        .cyber-glow {
+            text-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+        }
+
+        .skill-badge {
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            /* text-sm */
+            font-weight: 500;
+        }
+
+        .cyber-footer {
+            background: linear-gradient(to bottom, #1a202c, #0f172a);
+            border-top: 2px solid #10b981;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cyber-footer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #10b981, transparent);
+        }
+
+        .footer-grid-item {
+            position: relative;
+            padding: 20px;
+            border-radius: 10px;
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .footer-grid-item:hover {
+            background: rgba(30, 41, 59, 0.8);
+            border-color: #10b981;
+            transform: translateY(-5px);
+        }
+
+        .footer-icon {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(16, 185, 129, 0.1);
+            border-radius: 50%;
+            margin-bottom: 15px;
+        }
+
+        .contact-link {
+            transition: all 0.3s ease;
+            padding: 8px 12px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .contact-link:hover {
+            background: rgba(16, 185, 129, 0.1);
+            transform: translateX(5px);
+        }
+
+        .social-link {
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .social-link:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.5);
+        }
+
+        .matrix-pattern {
+            background-image:
+                radial-gradient(circle at 25% 25%, rgba(16, 185, 129, 0.05) 0%, transparent 55%),
+                radial-gradient(circle at 75% 75%, rgba(16, 185, 129, 0.05) 0%, transparent 55%);
+        }
+
+        /* Custom Styles for aesthetic consistency and cyber theme */
+        .cyber-glow {
+            text-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+        }
+
+        .experience-card {
+            background-color: #1f2937;
+            /* Gray-800 */
+            border: 1px solid #10b98150;
+            /* Green-500 with opacity */
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .experience-card:hover {
+            box-shadow: 0 0 25px rgba(16, 185, 129, 0.3);
+            transform: translateY(-3px);
+            border-color: #10b981;
+        }
+
+        .timeline-marker {
+            background-color: #10b981;
+            /* Green-500 */
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 2px solid #0f172a;
+            /* Slate-900 (background) */
+            position: absolute;
+            left: -6px;
+            top: 1.5rem;
+            /* Align with title start */
+            z-index: 10;
+        }
+
+        .timeline-line {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background-color: #374151;
+            /* Gray-700 */
+        }
+
+        /* Ensure card layout is nice on small screens */
+        @media (min-width: 640px) {
+            .experience-item {
+                display: flex;
+                padding-left: 2rem;
+            }
+
+            .experience-date {
+                flex: 0 0 180px;
+                /* Fixed width for dates on desktop */
+                padding-right: 2rem;
+            }
+
+            .experience-details {
+                flex: 1;
+                border-left: 2px solid #374151;
+                padding-left: 2rem;
+                position: relative;
+            }
+
+            .experience-details:before {
+                content: '';
+                position: absolute;
+                left: -7px;
+                top: 1.5rem;
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+                background-color: #10b981;
+                border: 2px solid #0f172a;
+            }
+        }
