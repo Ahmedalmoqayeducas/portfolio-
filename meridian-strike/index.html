@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MERIDIAN STRIKE</title>
+    <link rel="icon" href="data:," />
+    <style>
+      html, body { margin: 0; height: 100%; overflow: hidden; background: #0b0d10; font-family: 'Segoe UI', Roboto, sans-serif; }
+      canvas { display: block; }
+      #perf { position: fixed; top: 8px; left: 10px; color: #cfe3ff; font: 12px/1.45 ui-monospace, Menlo, Consolas, monospace;
+              background: rgba(8,12,18,.55); padding: 6px 9px; border: 1px solid rgba(160,200,255,.25); border-radius: 4px; white-space: pre; pointer-events: none; }
+      #help { position: fixed; bottom: 8px; left: 10px; color: #9fb4cc; font-size: 12px; background: rgba(8,12,18,.55);
+              padding: 6px 9px; border-radius: 4px; pointer-events: none; }
+      #title { position: fixed; top: 10px; right: 14px; color: #e8f1ff; letter-spacing: .35em; font-weight: 600; font-size: 14px; text-shadow: 0 1px 6px #000; pointer-events: none; }
+    </style>
+  </head>
+  <body>
+    <div id="title">MERIDIAN STRIKE</div>
+    <div id="perf"></div>
+    <div id="help">WASD / edge: pan · Q/E or MMB: rotate · Wheel: zoom · Shift: fast · 1-4: graphics preset · T: time of day · F: perf</div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
