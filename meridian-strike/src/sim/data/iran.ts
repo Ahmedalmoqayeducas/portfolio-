@@ -21,7 +21,7 @@ const structs: EntityDef[] = [
   }),
   structure({
     id: 'iran_barracks', name: 'Barracks', faction: F, roles: ['structure', 'production'], slot: 'barracks', cost: 500, time: 20, hp: 1400,
-    vision: 60, footprint: [26, 20], power: -3, produces: ['iran_basij', 'iran_irgc', 'iran_atgm', 'iran_technical'], tech: ['iran_cc'],
+    vision: 60, footprint: [26, 20], power: -3, produces: ['iran_basij', 'iran_irgc', 'iran_atgm', 'iran_misagh', 'iran_technical'], tech: ['iran_cc'],
     model: { tpl: 'barracks', style: 'iran', w: 26, d: 20 },
   }),
   structure({
@@ -95,7 +95,7 @@ const units: EntityDef[] = [
     producedBy: 'iran_supply', speed: 9.5, move: 'wheel', cap: 320, model: { tpl: 'truck', style: 'iran' },
   }),
   unit({
-    id: 'iran_basij', name: 'Basij Militia', faction: F, roles: ['infantry', 'militia'], cost: 80, time: 4, hp: 120, armor: 'infantry', radius: 1.8, vision: 55,
+    id: 'iran_basij', name: 'Basij Militia', faction: F, roles: ['infantry', 'militia'], cost: 80, time: 4, hp: 130, armor: 'infantry', radius: 1.8, vision: 55,
     producedBy: 'iran_barracks', speed: 4.4, move: 'foot', captures: true, canGarrison: true,
     weapons: [weapon({ id: 'g3', name: 'G3 Rifles', damage: 7, dtype: 'smallarms', range: 21, reload: 0.5, targets: ['ground', 'air'], vfx: 'bullet', mount: [0, 1.3, 0.8], fixed: true })],
     model: { tpl: 'infantry', style: 'iran', n: 4, kit: 'rifle', militia: true },
@@ -113,6 +113,12 @@ const units: EntityDef[] = [
     model: { tpl: 'infantry', style: 'iran', n: 2, kit: 'launcher' },
   }),
   unit({
+    id: 'iran_misagh', name: 'Misagh MANPADS Team', faction: F, roles: ['infantry', 'aa'], cost: 260, time: 8, hp: 125, armor: 'infantry', radius: 1.7, vision: 75,
+    producedBy: 'iran_barracks', speed: 4, move: 'foot', canGarrison: true, deploy: 'stealth', stealth: { detect: 14, reveal: 3 },
+    weapons: [weapon({ id: 'misagh', name: 'Misagh-2', damage: 95, dtype: 'aa', range: 72, reload: 3.6, salvo: 2, salvoGap: 0.4, speed: 130, targets: ['air'], guided: true, vfx: 'missile', mount: [0, 1.5, 0.8], fixed: true })],
+    model: { tpl: 'infantry', style: 'iran', n: 2, kit: 'launcher' },
+  }),
+  unit({
     id: 'iran_technical', name: 'Technical', faction: F, roles: ['scout'], cost: 300, time: 7, hp: 280, armor: 'light', radius: 2.8, vision: 100,
     producedBy: 'iran_barracks', speed: 11, move: 'wheel', turret: 4,
     weapons: [weapon({ id: 'dshk', name: 'DShK', damage: 8, dtype: 'smallarms', range: 32, reload: 0.22, targets: ['ground', 'air'], vfx: 'bullet', mount: [0, 2.8, -1.2] })],
@@ -125,7 +131,7 @@ const units: EntityDef[] = [
     model: { tpl: 'wheeled', style: 'iran', len: 7, wid: 2.9, wheels: 8, turret: 'cannon' },
   }),
   unit({
-    id: 'iran_t72', name: 'T-72S Upgrade', faction: F, roles: ['tank'], cost: 650, time: 12, hp: 880, armor: 'heavy', radius: 4.4, vision: 75,
+    id: 'iran_t72', name: 'T-72S Upgrade', faction: F, roles: ['tank'], cost: 650, time: 12, hp: 930, armor: 'heavy', radius: 4.4, vision: 75,
     producedBy: 'iran_workshop', speed: 5.2, move: 'track', turret: 2.0,
     weapons: [
       weapon({ id: 't72_gun', name: '125mm Gun', damage: 100, dtype: 'ap', range: 50, reload: 3.2, speed: 200, targets: ['ground'], vfx: 'cannon', aoe: 2.4, mount: [0, 3, 5], spread: 2.5 }),

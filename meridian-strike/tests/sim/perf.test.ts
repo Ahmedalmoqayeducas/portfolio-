@@ -5,7 +5,8 @@ import { AI_PERSONALITIES } from '../../src/sim/ai/ai';
 import { factionGenerals } from '../../src/sim/defs';
 import type { FactionId } from '../../src/sim/types';
 
-it('grand meridian perf trace', () => {
+const run = process.env.PERF ? it : it.skip;
+run('grand meridian perf trace', () => {
   const facs: FactionId[] = ['usa', 'china', 'iran', 'usa', 'china', 'iran', 'usa', 'china', 'iran', 'usa'];
   writeFileSync('/tmp/perf.log', '');
   const t0 = performance.now();

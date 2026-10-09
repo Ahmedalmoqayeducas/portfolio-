@@ -12,9 +12,9 @@ interface Pal { a: THREE.Color; b: THREE.Color; rock: THREE.Color; rock2: THREE.
 const C = (r: number, g: number, b: number) => new THREE.Color(r, g, b);
 
 const PALETTES: Record<Biome, Pal> = {
-  desert: { a: C(0.62, 0.4, 0.22), b: C(0.74, 0.52, 0.3), rock: C(0.36, 0.17, 0.1), rock2: C(0.2, 0.12, 0.09), scrub: C(0.34, 0.33, 0.15), road: C(0.26, 0.2, 0.15), wet: C(0.3, 0.2, 0.12) },
+  desert: { a: C(0.62, 0.4, 0.22), b: C(0.74, 0.52, 0.3), rock: C(0.36, 0.17, 0.1), rock2: C(0.2, 0.12, 0.09), scrub: C(0.34, 0.33, 0.15), road: C(0.34, 0.27, 0.2), wet: C(0.3, 0.2, 0.12) },
   urban: { a: C(0.3, 0.3, 0.17), b: C(0.4, 0.36, 0.2), rock: C(0.3, 0.29, 0.27), rock2: C(0.18, 0.18, 0.18), scrub: C(0.2, 0.3, 0.12), road: C(0.1, 0.1, 0.11), wet: C(0.55, 0.47, 0.32) },
-  oasis: { a: C(0.7, 0.5, 0.28), b: C(0.8, 0.62, 0.38), rock: C(0.4, 0.26, 0.17), rock2: C(0.24, 0.17, 0.12), scrub: C(0.17, 0.32, 0.08), road: C(0.3, 0.22, 0.15), wet: C(0.28, 0.2, 0.12) },
+  oasis: { a: C(0.7, 0.5, 0.28), b: C(0.8, 0.62, 0.38), rock: C(0.4, 0.26, 0.17), rock2: C(0.24, 0.17, 0.12), scrub: C(0.17, 0.32, 0.08), road: C(0.38, 0.29, 0.2), wet: C(0.28, 0.2, 0.12) },
   highland: { a: C(0.82, 0.86, 0.9), b: C(0.9, 0.93, 0.97), rock: C(0.32, 0.32, 0.34), rock2: C(0.2, 0.2, 0.22), scrub: C(0.16, 0.22, 0.14), road: C(0.35, 0.34, 0.33), wet: C(0.4, 0.4, 0.42) },
   mixed: { a: C(0.55, 0.42, 0.25), b: C(0.68, 0.54, 0.32), rock: C(0.34, 0.26, 0.2), rock2: C(0.2, 0.16, 0.13), scrub: C(0.2, 0.32, 0.1), road: C(0.12, 0.12, 0.13), wet: C(0.3, 0.22, 0.14) },
 };
@@ -76,7 +76,7 @@ export class Terrain {
         if (sd < 0) tmp.multiplyScalar(0.55);
       }
       const road = roadMask[k] / 255;
-      if (road > 0.02) tmp.lerp(pal.road, Math.min(1, road * 1.15) * 0.92);
+      if (road > 0.02) tmp.lerp(pal.road, smooth(0.3, 0.75, road) * 0.9);
       tmp.multiplyScalar(0.9 + 0.2 * mottle);
       colors[k * 3] = tmp.r; colors[k * 3 + 1] = tmp.g; colors[k * 3 + 2] = tmp.b;
     }

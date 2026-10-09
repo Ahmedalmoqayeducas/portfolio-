@@ -100,7 +100,7 @@ const units: EntityDef[] = [
     producedBy: 'china_supply', speed: 9, move: 'wheel', cap: 300, model: { tpl: 'truck', style: 'china' },
   }),
   unit({
-    id: 'china_militia', name: 'Militia Squad', faction: F, roles: ['infantry', 'militia'], cost: 110, time: 4.5, hp: 115, armor: 'infantry', radius: 1.8, vision: 55, swarm: 6, batch: 3,
+    id: 'china_militia', name: 'Militia Squad', faction: F, roles: ['infantry', 'militia'], cost: 110, time: 4.5, hp: 115, armor: 'infantry', radius: 1.8, vision: 55, swarm: 6, batch: 2,
     producedBy: 'china_barracks', speed: 4.3, move: 'foot', captures: true, canGarrison: true,
     weapons: [weapon({ id: 'type81', name: 'Type 81', damage: 7, dtype: 'smallarms', range: 22, reload: 0.5, targets: ['ground', 'air'], vfx: 'bullet', mount: [0, 1.3, 0.8], fixed: true })],
     model: { tpl: 'infantry', style: 'china', n: 4, kit: 'rifle', militia: true },
@@ -133,7 +133,7 @@ const units: EntityDef[] = [
     model: { tpl: 'tank', style: 'china', len: 7.8, wid: 3.3, turretLen: 2.6, gun: 3.4, ifv: true },
   }),
   unit({
-    id: 'china_ztz96', name: 'ZTZ-96B', faction: F, roles: ['tank'], cost: 850, time: 13, hp: 780, armor: 'heavy', radius: 4.4, vision: 75, swarm: 6,
+    id: 'china_ztz96', name: 'ZTZ-96B', faction: F, roles: ['tank'], cost: 900, time: 13, hp: 780, armor: 'heavy', radius: 4.4, vision: 75, swarm: 6,
     producedBy: 'china_armor', speed: 5.4, move: 'track', turret: 2.1,
     weapons: [
       weapon({ id: 'zpt98', name: '125mm Gun', damage: 110, dtype: 'ap', range: 54, reload: 3.0, speed: 210, targets: ['ground'], vfx: 'cannon', aoe: 2.5, mount: [0, 3, 5], spread: 2.5 }),
@@ -151,7 +151,7 @@ const units: EntityDef[] = [
     model: { tpl: 'tank', style: 'china', len: 9.8, wid: 3.8, turretLen: 3.6, gun: 5.4, era: true },
   }),
   unit({
-    id: 'china_type15', name: 'Type 15 Light Tank', faction: F, roles: ['tank', 'scout'], cost: 950, time: 14, hp: 720, armor: 'light', radius: 4, vision: 90, swarm: 6,
+    id: 'china_type15', name: 'Type 15 Light Tank', faction: F, roles: ['tank', 'scout'], cost: 1000, time: 14, hp: 720, armor: 'light', radius: 4, vision: 90, swarm: 6,
     producedBy: 'china_armor', speed: 7.2, move: 'track', turret: 2.8,
     weapons: [weapon({ id: 'zpl15', name: '105mm Gun', damage: 100, dtype: 'ap', range: 54, reload: 2.4, speed: 220, targets: ['ground'], vfx: 'cannon', aoe: 2.2, mount: [0, 3, 4], spread: 2 })],
     model: { tpl: 'tank', style: 'china', len: 8.2, wid: 3.3, turretLen: 3, gun: 4.4 },
@@ -169,7 +169,7 @@ const units: EntityDef[] = [
     model: { tpl: 'mlrs', style: 'china', len: 8.5, wid: 3, tubes: 8 },
   }),
   unit({
-    id: 'china_hq17', name: 'HQ-17 Short-Range SAM', faction: F, roles: ['aa'], cost: 700, time: 13, hp: 460, armor: 'light', radius: 3.8, vision: 80,
+    id: 'china_hq17', name: 'HQ-17 Short-Range SAM', faction: F, roles: ['aa'], cost: 750, time: 13, hp: 460, armor: 'light', radius: 3.8, vision: 80,
     producedBy: 'china_armor', speed: 6.2, move: 'wheel', tech: ['china_radar'],
     weapons: [weapon({ id: 'hq17', name: 'HQ-17', damage: 70, dtype: 'aa', range: 90, reload: 3.2, salvo: 2, salvoGap: 0.4, speed: 120, targets: ['air'], guided: true, vfx: 'missile', mount: [0, 4, 0], fixed: true })],
     model: { tpl: 'sam', style: 'china', len: 8, wid: 3, tubes: 4, mobile: true },

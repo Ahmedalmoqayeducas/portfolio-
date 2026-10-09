@@ -77,7 +77,7 @@ describe('china mechanics', () => {
     const before = sim.players[0].units;
     sim.queueCommand(0, { t: 'produce', structure: b.id, def: 'china_militia' });
     run(sim, 30);
-    expect(sim.players[0].units - before).toBe(3);
+    expect(sim.players[0].units - before).toBe(2);
   });
   it('swarm bonus activates with six units', () => {
     const sim = makeSim({ players: [{ faction: 'china', general: 'china_lin' }, { faction: 'usa', general: 'usa_hale' }], fog: false });

@@ -316,4 +316,5 @@ Where the implementation differs from or extends the plan above:
 * **Maps:** five authored maps built from seeded noise + graded roads/pads that guarantee connectivity; Harbor Line / Grand Meridian contain garrisonable civilian cities, Oasis Crown has water and sandstorms, Highland Pass has snow, Grand Meridian has a day/night cycle.
 * **Graphics:** HDR PBR pipeline, CSM shadows, GTAO, bloom, SMAA, sky + IBL, fog, weather, GPU-instanced procedural models with shader camo/grime, 28k-particle VFX (additive + smoke), decals, shockwaves, dynamic flashes, night window lights.
 * **Audio:** all synthesised in Web Audio (weapons, explosions, UI, adaptive music, radio voice through the browser's speech synthesis).
+* **Replays:** the simulation is deterministic (seeded RNG, command log) — *Save replay* in the pause / end screen, *Watch replay* in the main menu. See `docs/BALANCE.md` for the AI-vs-AI balance method and results.
 * **Not included in v1.0:** LAN lockstep (the simulation is deterministic-by-commands and ready for it), campaigns, naval units.
