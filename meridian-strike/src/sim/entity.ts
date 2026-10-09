@@ -105,6 +105,7 @@ export class Entity {
   tunnelId = 0;
   decoy = false;
   scootT = 0;
+  idleT = 0;
   buffT = 0;
   /** squad id assigned by AI (0 none) */
   squad = 0;

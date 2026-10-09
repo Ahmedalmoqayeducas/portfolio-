@@ -294,3 +294,26 @@ Key rules: sim never imports render; all gameplay values come from `data/`; comm
 
 ## 14. Publishing note
 This repo currently deploys to GitHub Pages on pushes to `main`. The game lives in `meridian-strike/` on a feature branch and is **not** published until merged to `main` — keep it unmerged (or exclude the folder from the Pages workflow) while it is local-only.
+
+
+---
+
+## Appendix A — As implemented (v1.0)
+
+Where the implementation differs from or extends the plan above:
+
+* **Simulation architecture:** plain struct-style entity classes + spatial hash (instead of bitECS); runs in a Web Worker at 30 Hz and posts typed-array snapshots. Flow-fields are demand-driven Dijkstra fields cached per 8 m goal cell, with straight-line LOS shortcuts and soft local avoidance.
+* **Economy:** Supply Trucks harvest neutral supply piles (12–14k each) and return to Supply Centers; capturable oil derricks give +6 $/s. Power: low power slows production (min 35 %) and switches off radar / defences / superweapons below 55 %. Construction is done by Dozers (cost paid when the structure is placed).
+* **Command points:** rank-ups (8 ranks, from 40 % of the value of enemies killed) give 1 ★ each; General's Powers are unlocked for 1 / 2 / 3 ★ (tier 1 / 2 / 3) and then used with a cooldown. Tier-3 powers also require the faction's tech structure.
+* **Veterancy:** units rank Rookie → Veteran → Elite → Heroic from the cost of kills (HP, damage, ROF, vision; elite+ self-repair).
+* **Armies:** each faction has ~19 units (incl. Dozer and Supply Truck), ~15 structures, 3 generals (3 powers each), 3 upgrades and one superweapon. Mechanics:
+  * **USA** — Active Protection System on Abrams, cyber operators that disable vehicles/structures, stealth F-35 / B-21 / Ranger, EMP + cyber blackout powers, longest-range air defence.
+  * **China** — batch ("mass") production and **Swarm bonus** (+12 % damage / −15 % damage taken near 6+ allied swarm units), cheapest economy, layered air defence, rocket-force artillery.
+  * **Iran** — units that **hide** (stealth when deployed / idle), **shoot-and-scoot** TELs & rocket launchers, **decoy** vehicles that appear as real units to the enemy, **Shahed loitering-munition swarms**, minefield / militia / ambush powers.
+* **Fog of war:** per-team 8 m grid, shared with allies; structures you have seen stay visible as remembered ghosts; stealth units are only revealed by detectors, short-range proximity or by firing.
+* **Combat:** damage-type × armour-class matrix, simulated projectiles (hit-scan, ballistic, guided, bombs), guided missiles can be jammed and intercepted by APS, splash with falloff, garrison / capture, wrecks, craters, burning ruins.
+* **AI:** build orders by role-slot (so it works for every faction), production weighted by personality and counter-picking, attack waves with retreat logic, defence responses, expansion to free supply piles, uses powers and superweapons. Difficulty scales think rate, wave size, army cap, expansion and (Brutal) income.
+* **Maps:** five authored maps built from seeded noise + graded roads/pads that guarantee connectivity; Harbor Line / Grand Meridian contain garrisonable civilian cities, Oasis Crown has water and sandstorms, Highland Pass has snow, Grand Meridian has a day/night cycle.
+* **Graphics:** HDR PBR pipeline, CSM shadows, GTAO, bloom, SMAA, sky + IBL, fog, weather, GPU-instanced procedural models with shader camo/grime, 28k-particle VFX (additive + smoke), decals, shockwaves, dynamic flashes, night window lights.
+* **Audio:** all synthesised in Web Audio (weapons, explosions, UI, adaptive music, radio voice through the browser's speech synthesis).
+* **Not included in v1.0:** LAN lockstep (the simulation is deterministic-by-commands and ready for it), campaigns, naval units.

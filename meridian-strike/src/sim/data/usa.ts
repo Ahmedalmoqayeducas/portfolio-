@@ -49,7 +49,7 @@ const structs: EntityDef[] = [
   }),
   structure({
     id: 'usa_cyber', name: 'Cyber Warfare Center', faction: F, roles: ['structure', 'production'], slot: 'cyber', cost: 1500, time: 30, hp: 1500,
-    vision: 60, footprint: [24, 22], power: -6, tech: ['usa_radar'], produces: ['usa_cyberop'],
+    vision: 60, footprint: [24, 22], power: -6, tech: ['usa_radar'], produces: ['usa_cyberop'], jammer: 110,
     model: { tpl: 'cyber', style: 'usa', w: 24, d: 22 },
   }),
   structure({

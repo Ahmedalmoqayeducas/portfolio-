@@ -114,7 +114,7 @@ export class Sim {
     this.options = init.options;
     this.rng = mulberry32(init.seed);
     this.nav = new NavGrid(this.hf, this.map.waterLevel ?? null, 4);
-    this.flow = new FlowCache(this.nav, 36);
+    this.flow = new FlowCache(this.nav, 64);
     this.hash = new SpatialHash(this.map.size);
 
     // players & teams
@@ -446,7 +446,7 @@ export class Sim {
       if (e.hp < e.maxHp * 0.45) flags |= F_DAMAGED;
       const o = n * ENT_STRIDE;
       ents[o] = e.id;
-      ents[o + 1] = DEF_INDEX.get(d.id)!;
+      ents[o + 1] = DEF_INDEX.get(d.decoyOf && e.team !== viewTeam && !spectator ? d.decoyOf : d.id)!;
       ents[o + 2] = e.owner;
       ents[o + 3] = e.x; ents[o + 4] = e.y; ents[o + 5] = e.z;
       ents[o + 6] = e.heading; ents[o + 7] = e.turret;

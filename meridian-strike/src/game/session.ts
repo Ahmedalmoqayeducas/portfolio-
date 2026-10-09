@@ -85,6 +85,8 @@ export class GameSession {
     this.post = new PostStack(r, this.scene, this.rts.camera);
     this.perf = new PerfOverlay(r);
     this.audio = new AudioSystem(engine.settings);
+    this.audio.setViewer(this.viewer);
+    this.audio.mood = setup.players[Math.max(0, this.viewer)]?.faction ?? 'usa';
     this.host = opts.local ? new LocalHost() : new WorkerHost();
     this.host.onSnapshot = (s) => this.onSnapshot(s);
 

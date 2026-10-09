@@ -186,7 +186,10 @@ function startCooldown(e: Entity, wi: number): void {
 /** Called by air.ts / combat for any shot; handles cooldown bookkeeping. */
 export function shoot(sim: Sim, e: Entity, wi: number, t: Entity, sx?: number, sy?: number, sz?: number): void {
   fireWeapon(sim, e, wi, t, sx, sy, sz);
-  if (e.alive) startCooldown(e, wi);
+  if (!e.alive) return;
+  startCooldown(e, wi);
+  const w = e.def.weapons![wi];
+  if (e.def.scoot && w.minRange) e.scootT = sim.tick + Math.round(((w.salvo ?? 1) * (w.salvoGap ?? 0.15) + 0.6) * TICK_RATE);
 }
 
 export function combatTick(sim: Sim): void {
@@ -448,5 +451,5 @@ function impact(sim: Sim, p: Projectile, target: Entity | undefined): void {
   if (w.stunTime) explode(sim, ix, iy, iz, Math.max(r, 4), 0, w.dtype, p.owner, src, hitsAir, hitsGround, w.stunTime);
   else explode(sim, ix, iy, iz, r, p.dmg, w.dtype, p.owner, src, hitsAir, hitsGround);
   const size = Math.max(0.5, Math.min(7, r * 0.32 + p.dmg / 260));
-  sim.emitAt({ k: 'boom', x: ix, y: iy + (air ? 0 : 0.5), z: iz, size, kind: air ? 'air' : r >= 12 ? 'big' : 'ground' }, ix, iz);
+  sim.emitAt({ k: 'boom', x: ix, y: iy + (air ? 0 : 0.5), z: iz, size, kind: air ? 'air' : r >= 45 ? 'nuke' : r >= 12 ? 'big' : 'ground' }, ix, iz);
 }

@@ -177,13 +177,14 @@ const DC = [10, 10, 10, 10, 14, 14, 14, 14];
 
 export class FlowField {
   lastUsed = 0;
+  builtTick = 0;
   constructor(readonly goal: number, readonly dist: Float32Array, readonly version: number, readonly stopCost: number) {}
 }
 
 export class FlowCache {
   private fields = new Map<number, FlowField>();
   computed = 0;
-  constructor(private nav: NavGrid, private max = 40) {}
+  constructor(private nav: NavGrid, private max = 64) {}
 
   /** Get (or build) a field towards goal world position. `from` helps bound the search. */
   get(gx: number, gz: number, tick: number, fromX?: number, fromZ?: number): FlowField | null {
@@ -196,9 +197,12 @@ export class FlowCache {
       k = nav.idx(f[0], f[1]);
     }
     const hit = this.fields.get(k);
-    const need = fromX === undefined ? 1e9 : (Math.hypot(fromX - gx, fromZ! - gz) / nav.cell) * 28 + 800;
-    if (hit && nav.version - hit.version <= 8 && hit.stopCost >= Math.min(need, 1e8)) { hit.lastUsed = tick; return hit; }
-    const field = this.build(k, need);
+    // search bound: generous margin so nearby followers reuse the same field
+    const need = fromX === undefined ? 1e9 : (Math.hypot(fromX - gx, fromZ! - gz) / nav.cell) * 34 * 1.35 + 1800;
+    if (hit && nav.version - hit.version <= 80 && tick - hit.builtTick < 900 && hit.stopCost >= Math.min(need, 1e8)) { hit.lastUsed = tick; return hit; }
+    const prevStop = hit ? hit.stopCost * 1.7 : 0;
+    const field = this.build(k, Math.max(need, Math.min(prevStop, 1e9)));
+    field.builtTick = tick;
     field.lastUsed = tick;
     this.fields.set(k, field);
     if (this.fields.size > this.max) {

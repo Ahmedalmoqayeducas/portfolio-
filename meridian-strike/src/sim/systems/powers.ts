@@ -4,9 +4,10 @@ import { DT, PowerDef, TICK_RATE, WeaponDef } from '../types';
 import { DEFS, GENERALS, POWERS, SLOTS } from '../defs';
 import { explode, stun, VFX_NAMES } from './combat';
 
+export interface Mine { x: number; z: number; owner: number; team: number; dmg: number; until: number }
+
 export class PowerState {
-  /** reserved for persistent area effects */
-  zones: { team: number; x: number; z: number; r: number; until: number; kind: string }[] = [];
+  mines: Mine[] = [];
 }
 
 export function unlockPower(sim: Sim, p: Player, id: string): void {
@@ -103,7 +104,7 @@ export function usePower(sim: Sim, p: Player, id: string, x: number, z: number):
     case 'airstrike': case 'carpet': {
       const n = fx.count ?? 8;
       const r = fx.radius ?? 40;
-      const w = adHocWeapon('bomb', fx.damage ?? 200, fx.dtype ?? 'explosive', fx.kind === 'carpet' ? 16 : 11, 'bomb', 0);
+      const w = adHocWeapon('bomb', fx.damage ?? 200, fx.dtype ?? 'explosive', fx.spread ?? (fx.kind === 'carpet' ? 16 : 11), 'bomb', 0);
       const dir = sim.rng() * Math.PI * 2;
       const dur = fx.duration ?? 4;
       for (let i = 0; i < n; i++) {
@@ -124,7 +125,7 @@ export function usePower(sim: Sim, p: Player, id: string, x: number, z: number):
       const n = fx.count ?? 12;
       const r = fx.radius ?? 40;
       const missile = fx.kind === 'salvo';
-      const w = adHocWeapon(missile ? 'salvo' : 'barrage', fx.damage ?? 150, fx.dtype ?? 'artillery', missile ? 14 : 10, missile ? 'missile' : 'shell', 200);
+      const w = adHocWeapon(missile ? 'salvo' : 'barrage', fx.damage ?? 150, fx.dtype ?? 'artillery', fx.spread ?? (missile ? 14 : 10), missile ? 'missile' : 'shell', 200);
       const dur = fx.duration ?? 8;
       for (let i = 0; i < n; i++) {
         const a = sim.rng() * Math.PI * 2, rr = Math.sqrt(sim.rng()) * r;
@@ -169,10 +170,36 @@ export function usePower(sim: Sim, p: Player, id: string, x: number, z: number):
       });
       break;
     }
+    case 'minefield': {
+      later(sim, delay, () => {
+        for (let i = 0; i < (fx.count ?? 24); i++) {
+          const a = sim.rng() * Math.PI * 2, rr = Math.sqrt(sim.rng()) * (fx.radius ?? 40);
+          const mx = x + Math.sin(a) * rr, mz = z + Math.cos(a) * rr;
+          if (sim.nav.terrainBlockedAt(mx, mz)) continue;
+          sim.powerState.mines.push({ x: mx, z: mz, owner, team: p.team, dmg: fx.damage ?? 250, until: sim.tick + (fx.duration ?? 100) * TICK_RATE });
+        }
+        sim.emitAt({ k: 'boom', x, y: sim.groundY(x, z) + 1, z, size: 1.5, kind: 'gen' }, x, z);
+      });
+      break;
+    }
     default: break;
   }
 }
 
 export function stepPowers(sim: Sim): void {
-  void sim; void DT; void explode; void SLOTS;
+  const mines = sim.powerState.mines;
+  if (!mines.length || sim.tick % 3 !== 0) return;
+  for (let i = mines.length - 1; i >= 0; i--) {
+    const m = mines[i];
+    if (sim.tick > m.until) { mines.splice(i, 1); continue; }
+    const near = sim.hash.query(sim.list, m.x, m.z, 4.5, sim.tmp2);
+    const victim = near.find((e) => e.team !== m.team && e.owner >= 0 && e.def.kind === 'unit' && e.def.layer === 'ground' && e.def.move !== 'foot');
+    const inf = near.find((e) => e.team !== m.team && e.owner >= 0 && e.def.kind === 'unit' && e.def.move === 'foot');
+    if (victim || inf) {
+      mines.splice(i, 1);
+      explode(sim, m.x, sim.groundY(m.x, m.z), m.z, 9, m.dmg, 'explosive', m.owner, null, false, true);
+      sim.emitAt({ k: 'boom', x: m.x, y: sim.groundY(m.x, m.z) + 1, z: m.z, size: 1.6, kind: 'ground' }, m.x, m.z);
+    }
+  }
+  void DT; void SLOTS;
 }

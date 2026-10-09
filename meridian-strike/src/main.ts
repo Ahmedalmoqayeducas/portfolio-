@@ -22,6 +22,7 @@ const perfEl = document.createElement('div');
 perfEl.id = 'perf';
 document.body.appendChild(perfEl);
 
+import { runGallery } from './gallery';
 let session: GameSession | null = null;
 let lobby: Lobby | null = null;
 
@@ -128,7 +129,10 @@ async function startGame(setup: SessionSetup): Promise<void> {
 
 // ---- URL shortcuts for testing: ?auto=1&map=red_mesa&n=4&spectate=1&q=low&speed=4&t=12&human=1
 if (params.has('q')) { engine.settings.quality = params.get('q') as typeof engine.settings.quality; saveSettings(engine.settings); }
-if (params.has('auto')) {
+if (params.has('gallery')) {
+  engine.canvas.style.visibility = 'visible';
+  runGallery(engine, params.get('gallery') || 'usa', 0x3d7bff);
+} else if (params.has('auto')) {
   const facs = availableFactions();
   const map = params.get('map') ?? 'red_mesa';
   const def = MAP_BY_ID[map];

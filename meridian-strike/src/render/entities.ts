@@ -333,12 +333,13 @@ export class EntityRenderer {
         this.ringColor(rings, owned ? 0x9affb0 : 0xffa0a0);
         rings++;
       }
-      const showBar = (isSel || v.hp < 0.995 || (structure && v.flags & F_BUILDING)) && !def.prop && bars < 2999 && !(structure && !isSel && v.hp >= 0.995 && !(v.flags & F_BUILDING));
+      const capturing = (v.flags & 1024) !== 0;
+      const showBar = (isSel || v.hp < 0.995 || (structure && v.flags & F_BUILDING) || capturing) && !def.prop && bars < 2999 && !(structure && !isSel && !capturing && v.hp >= 0.995 && !(v.flags & F_BUILDING));
       if (showBar) {
         const top = (b.model.height * sy) + (structure ? 3 : 1.5) + (b.air ? 0 : 0);
         const w = Math.min(26, Math.max(4, def.radius * 1.9));
         setRY(barMat, bars * 16, x, y + top, z, 0, w, 1, 1);
-        const building = structure && (v.flags & F_BUILDING);
+        const building = structure && ((v.flags & F_BUILDING) || capturing);
         barArr[bars * 4] = building ? v.prog : v.hp;
         barArr[bars * 4 + 1] = building ? 1 : 0;
         bars++;

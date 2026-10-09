@@ -1,14 +1,16 @@
 {
   "name": "meridian-strike",
   "private": true,
-  "version": "0.0.1",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "shot": "node tests/screenshot.mjs"
+    "shot": "node tests/screenshot.mjs",
+    "test": "vitest run",
+    "test:soak": "vitest run tests/sim/soak.test.ts"
   },
   "dependencies": {
     "three": "^0.170.0"

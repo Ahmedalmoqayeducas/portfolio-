@@ -160,6 +160,10 @@ export function applyCommand(sim: Sim, pid: number, cmd: Command): void {
     case 'unload': {
       const s = sim.byId.get(cmd.id);
       if (!s || s.owner !== pid) return;
+      if (s.def.tunnel) {
+        // tunnel network: everything garrisoned in any of our tunnels emerges here
+        for (const o of sim.list) if (o.alive && o !== s && o.owner === pid && o.def.tunnel) { s.garrisoned.push(...o.garrisoned); o.garrisoned = []; }
+      }
       for (const gid of [...s.garrisoned]) {
         const g = sim.byId.get(gid);
         if (!g) continue;
@@ -215,17 +219,19 @@ export function terrainSpeedFactor(sim: Sim, e: Entity, hx: number, hz: number):
 }
 
 /** Steers a ground unit toward (gx,gz). `fx,fz` is the flowfield goal (group target). Returns true when within stopR. */
-export function moveToward(sim: Sim, e: Entity, gx: number, gz: number, stopR: number, fx = gx, fz = gz): boolean {
+export function moveToward(sim: Sim, e: Entity, gx: number, gz: number, stopR: number, fx = gx, fz = gz, quant = 24): boolean {
   const d = e.def;
   const dx = gx - e.x, dz = gz - e.z;
   const dist = Math.hypot(dx, dz);
+  if (e.deployed && d.deploy === 'stealth' && dist > stopR) e.deployed = false;
+  e.idleT = 0;
   if (dist <= stopR) { e.moving = false; e.speed *= 0.6; if (e.speed < 0.2) e.speed = 0; return true; }
   let tx = dx / dist, tz = dz / dist;
   const nav = sim.nav;
   const direct = dist < 90 && nav.los(e.x, e.z, gx, gz);
   if (!direct) {
-    // snap to 8 m grid so many units chasing nearby goals share one field
-    const qx = Math.round(fx / 8) * 8, qz = Math.round(fz / 8) * 8;
+    // snap the field goal to a coarse grid so many units heading to nearby goals share one field
+    const qx = Math.round(fx / quant) * quant, qz = Math.round(fz / quant) * quant;
     let f = sim.flow.get(qx, qz, sim.tick, e.x, e.z);
     let ok = f ? sim.flow.dir(f, e.x, e.z, dir) : false;
     if (!ok && f) {
@@ -292,6 +298,20 @@ export function faceTarget(e: Entity, tx: number, tz: number, tol = 0.14): boole
   return Math.abs(diff) < tol;
 }
 
+/** distance from point to a structure's footprint rectangle (0 inside) */
+export function rectDist(st: Entity, x: number, z: number): number {
+  const [fw, fd] = st.def.footprint ?? [st.def.radius * 2, st.def.radius * 2];
+  const dx = Math.max(Math.abs(x - st.x) - fw / 2, 0), dz = Math.max(Math.abs(z - st.z) - fd / 2, 0);
+  return Math.hypot(dx, dz);
+}
+
+/** walk toward a structure until within `reach` of its edge; returns true when there */
+function approach(sim: Sim, e: Entity, st: Entity, reach: number): boolean {
+  if (rectDist(st, e.x, e.z) <= reach + e.def.radius * 0.5) return true;
+  moveToward(sim, e, st.x, st.z, 0.1, st.x, st.z, 16);
+  return false;
+}
+
 function setHome(e: Entity): void { e.ax = e.x; e.az = e.z; }
 function shift(e: Entity): void { e.orders.shift(); if (!e.orders.length) setHome(e); e.target = 0; }
 
@@ -323,6 +343,7 @@ export function stepUnit(sim: Sim, e: Entity): void {
       }
       const arrive = Math.max(2.2, d.radius * 0.9);
       if (moveToward(sim, e, o.x, o.z, arrive, o.x2, o.z2)) {
+        if (o.def === 'scoot' && d.deploy === 'stealth') e.deployed = true;
         if (o.k === 'patrol') { const nx = o.x2, nz = o.z2; o.x2 = o.x; o.z2 = o.z; o.x = nx; o.z = nz; } else shift(e);
       }
       break;
@@ -354,9 +375,8 @@ export function stepUnit(sim: Sim, e: Entity): void {
     case 'repair': {
       const t = sim.byId.get(o.target);
       if (!t || !t.alive || t.hp >= t.maxHp) { shift(e); break; }
-      const reach = t.def.radius + 7;
-      if (Math.hypot(t.x - e.x, t.z - e.z) > reach) moveToward(sim, e, t.x, t.z, reach * 0.8);
-      else { e.moving = false; e.speed = 0; t.hp = Math.min(t.maxHp, t.hp + t.maxHp * 0.03 * DT); }
+      if (!approach(sim, e, t, 9)) break;
+      e.moving = false; e.speed = 0; t.hp = Math.min(t.maxHp, t.hp + t.maxHp * 0.03 * DT);
       break;
     }
     case 'harvest': stepHarvest(sim, e, o); break;
@@ -364,8 +384,7 @@ export function stepUnit(sim: Sim, e: Entity): void {
       const t = sim.byId.get(o.target);
       if (!t || !t.alive || t.team === e.team) { shift(e); break; }
       if (t.garrisoned.length && t.owner !== -1) { shift(e); break; }
-      const reach = t.def.radius + 3;
-      if (Math.hypot(t.x - e.x, t.z - e.z) > reach) { moveToward(sim, e, t.x, t.z, reach * 0.9); break; }
+      if (!approach(sim, e, t, 6)) break;
       e.moving = false; e.speed = 0;
       if (t.capOwner !== e.owner) { t.capOwner = e.owner; t.capProg = 0; }
       t.capProg += DT / (t.def.income ? 7 : 12);
@@ -387,8 +406,7 @@ export function stepUnit(sim: Sim, e: Entity): void {
     case 'garrison': {
       const t = sim.byId.get(o.target);
       if (!t || !t.alive || !t.def.garrison || (t.owner >= 0 && t.team !== e.team) || t.garrisoned.length >= t.def.garrison) { shift(e); break; }
-      const reach = t.def.radius + 2.5;
-      if (Math.hypot(t.x - e.x, t.z - e.z) > reach) { moveToward(sim, e, t.x, t.z, reach * 0.9); break; }
+      if (!approach(sim, e, t, 6)) break;
       e.inside = t.id; t.garrisoned.push(e.id); e.moving = false; e.speed = 0;
       if (t.owner === -1) {
         t.owner = e.owner; t.team = e.team;
@@ -407,6 +425,17 @@ function idle(sim: Sim, e: Entity): void {
   const d = e.def;
   e.moving = false;
   e.speed *= 0.7;
+  if (e.scootT && sim.tick >= e.scootT) {
+    e.scootT = 0;
+    const t = e.target ? sim.byId.get(e.target) : undefined;
+    let ax = e.x - (t ? t.x : e.x + sim.rng() - 0.5), az = e.z - (t ? t.z : e.z + sim.rng() - 0.5);
+    const l = Math.hypot(ax, az) || 1;
+    ax /= l; az /= l;
+    const dist = 55 + sim.rng() * 30;
+    const f = sim.nav.nearestFree(e.x + ax * dist + (sim.rng() - 0.5) * 20, e.z + az * dist + (sim.rng() - 0.5) * 20, 8);
+    if (f) { const o = order('move', f[0], f[1]); o.x2 = f[0]; o.z2 = f[1]; o.def = 'scoot'; e.orders.push(o); e.deployed = false; return; }
+  }
+  if (d.scoot && d.deploy === 'stealth' && !e.deployed && !e.target) { if (++e.idleT > 120) e.deployed = true; }
   if (d.cap && sim.tick % 20 === (e.id % 20)) { autoHarvest(sim, e); if (e.orders.length) return; }
   if (e.target) {
     const t = sim.byId.get(e.target);
@@ -444,9 +473,7 @@ function healAura(sim: Sim, e: Entity): void {
 function stepBuild(sim: Sim, e: Entity, o: Order): void {
   const st = sim.byId.get(o.target);
   if (!st || !st.alive || st.progress >= 1) { shift(e); return; }
-  const reach = st.def.radius * 0.8 + 8;
-  const dist = Math.hypot(st.x - e.x, st.z - e.z);
-  if (dist > reach) { moveToward(sim, e, st.x, st.z, reach * 0.9); return; }
+  if (!approach(sim, e, st, 9)) return;
   e.moving = false; e.speed = 0;
   const player = sim.players[e.owner];
   const lowPower = player.powerRatio < 1 ? 0.8 : 1;
@@ -497,8 +524,7 @@ function stepHarvest(sim: Sim, e: Entity, o: Order): void {
       if (!dep) { if (e.cargo > 0) o.state = 2; else shift(e); return; }
       o.target = dep.id; o.x = dep.x; o.z = dep.z;
     }
-    const reach = dep.def.radius + 6;
-    if (moveToward(sim, e, dep.x, dep.z, reach)) { o.state = 1; o.t = 0; }
+    if (approach(sim, e, dep, 7)) { o.state = 1; o.t = 0; }
   } else if (o.state === 1) {
     const dep = sim.byId.get(o.target);
     e.moving = false; e.speed = 0;
@@ -510,8 +536,7 @@ function stepHarvest(sim: Sim, e: Entity, o: Order): void {
   } else if (o.state === 2) {
     const drop = nearestDropoff(sim, e);
     if (!drop) { e.moving = false; return; }
-    const reach = drop.def.radius + 5;
-    if (moveToward(sim, e, drop.x, drop.z, reach)) { o.state = 3; o.t = 0; }
+    if (approach(sim, e, drop, 7)) { o.state = 3; o.t = 0; }
   } else {
     e.moving = false; e.speed = 0;
     o.t += DT;
