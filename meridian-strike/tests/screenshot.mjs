@@ -1,4 +1,4 @@
-// Headless-Chromium smoke test: boots the dev server, takes screenshots, reports console errors + frame stats.
+// Headless-Chromium smoke test: boots the dev server, runs scenarios, takes screenshots, reports console errors + frame stats.
 import { chromium } from 'playwright-core';
 import { spawn } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
@@ -19,23 +19,23 @@ const browser = await chromium.launch({
 });
 const page = await browser.newPage({ viewport: { width: 1600, height: 900 } });
 const errors = [];
-page.on('console', (m) => ['error', 'warning'].includes(m.type()) && errors.push(`[${m.type()}] ${m.text()}`));
+page.on('console', (m) => { if (['error', 'warning'].includes(m.type())) errors.push(`[${m.type()}] ${m.text()}`); if (process.env.VERBOSE) console.log('console:', m.text()); });
 page.on('pageerror', (e) => errors.push(`[pageerror] ${e.message}`));
 
-const shots = [
-  { name: 'm0-dusk', q: 'ultra', t: 17.2, d: 110, yaw: 0.8 },
-  { name: 'm0-noon-close', q: 'ultra', t: 12, d: 45, yaw: 2.2 },
-  { name: 'm0-night', q: 'high', t: 22, d: 150, yaw: 0.8 },
+const scenarios = JSON.parse(process.env.SCEN ?? '[]');
+const defaults = [
+  { name: 'm1-spectate', url: '?auto=1&spectate=1&map=red_mesa&n=2&q=low&speed=6&base=1&shot=1', wait: 25000 },
 ];
-for (const s of shots) {
-  await page.goto(`http://localhost:${PORT}/?shot=1&q=${s.q}&t=${s.t}&d=${s.d}&yaw=${s.yaw}`);
-  await page.waitForFunction(() => window.__game && window.__game.frames > 4, null, { timeout: 120000 });
-  await page.waitForTimeout(1500);
+for (const s of scenarios.length ? scenarios : defaults) {
+  await page.goto(`http://localhost:${PORT}/${s.url}`);
+  await page.waitForFunction(() => window.__session && window.__session.snap && window.__session.snap.tick > 30, null, { timeout: 180000 });
+  await page.waitForTimeout(s.wait ?? 5000);
+  if (s.js) { const r = await page.evaluate(s.js); console.log('js ->', JSON.stringify(r)); await page.waitForTimeout(s.after ?? 2500); }
   await page.screenshot({ path: `${out}${s.name}.png` });
-  console.log('overlay:', JSON.stringify(await page.evaluate(() => document.getElementById('perf').textContent)));
-  console.log('shot', s.name, JSON.stringify(await page.evaluate(() => window.__game.info())));
+  const info = await page.evaluate(() => { const ss = window.__session; return { tick: ss.snap.tick, ents: ss.snap.n, simMs: ss.snap.perf.tickMs, players: ss.snap.players.map((p) => `${p.name}:${p.units}u/${p.structures}s/$${p.credits}`) }; });
+  console.log('shot', s.name, JSON.stringify(info));
 }
-console.log(errors.length ? `console issues:\n${errors.join('\n')}` : 'no console errors');
+console.log(errors.length ? `console issues:\n${[...new Set(errors)].slice(0, 20).join('\n')}` : 'no console errors');
 await browser.close();
-server.kill();
+try { process.kill(-server.pid); } catch {}
 process.exit(errors.some((e) => e.startsWith('[pageerror]')) ? 1 : 0);

@@ -1,4 +1,4 @@
-import { buildMap, MapDef } from '../maps/maps';
+import { buildMap, MapDef, MAP_BY_ID, spawnIndex } from '../maps/maps';
 import { HeightField } from '../maps/heightfield';
 import { mulberry32 } from '../procgen/noise';
 import { Entity, Order, order } from './entity';
@@ -63,6 +63,7 @@ export class Player {
   structures = 0;
   incomeMul = 1;
   incomeWindow: number[] = [];
+  incomeHist: number[] = [];
   incomeLast = 0;
   incomePerSec = 0;
   general: GeneralDef;
@@ -108,9 +109,8 @@ export class Sim {
   orderSummary: Record<number, string> = {};
 
   constructor(init: InitMsg, hfOverride?: HeightField) {
-    const built = buildMap(init.map);
-    this.map = built.def;
-    this.hf = hfOverride ?? built.hf;
+    this.map = MAP_BY_ID[init.map];
+    this.hf = hfOverride ?? buildMap(init.map).hf;
     this.options = init.options;
     this.rng = mulberry32(init.seed);
     this.nav = new NavGrid(this.hf, this.map.waterLevel ?? null, 4);
@@ -293,9 +293,8 @@ export class Sim {
 
   private placeBases(): void {
     const n = this.players.length;
-    const spawnIdx = this.map.spawnSets[Math.min(Math.max(n, this.map.minPlayers), this.map.maxPlayers)] ?? this.map.spawnSets[this.map.maxPlayers];
     this.players.forEach((p, i) => {
-      const si = p.setup.spawn ?? spawnIdx[i % spawnIdx.length];
+      const si = p.setup.spawn ?? spawnIndex(this.map, n, i);
       const [sx, sz] = this.map.spawns[si];
       p.spawn = [sx, sz];
       const f = p.faction;

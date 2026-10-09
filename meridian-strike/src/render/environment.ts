@@ -13,6 +13,7 @@ export class Environment {
   private envTarget: THREE.WebGLRenderTarget | null = null;
   private readonly skyScene = new THREE.Scene();
   hour = 0;
+  daylight = 1;
 
   constructor(
     private readonly renderer: THREE.WebGLRenderer,
@@ -53,7 +54,7 @@ export class Environment {
   }
 
   /** hour in [0,24): 6 = sunrise, 12 = noon, 18 = sunset. */
-  setHour(hour: number): void {
+  setHour(hour: number, bake = true): void {
     this.hour = ((hour % 24) + 24) % 24;
     const day = (this.hour - 6) / 12; // 0..1 over daylight
     const elev = Math.sin(day * Math.PI) * 62 + (day < 0 || day > 1 ? Math.sin(day * Math.PI) * 30 : 0);
@@ -79,13 +80,16 @@ export class Environment {
       l.intensity = 2.0 * daylight + 0.9 * (1 - daylight);
     }
 
+    this.daylight = daylight;
     // image based lighting from the sky itself (re-baked when the time changes)
-    this.skyScene.clear();
-    const skyClone = this.sky.clone();
-    this.skyScene.add(skyClone);
-    this.envTarget?.dispose();
-    this.envTarget = this.pmrem.fromScene(this.skyScene, 0, 1, 40000);
-    this.scene.environment = this.envTarget.texture;
+    if (bake) {
+      this.skyScene.clear();
+      const skyClone = this.sky.clone();
+      this.skyScene.add(skyClone);
+      this.envTarget?.dispose();
+      this.envTarget = this.pmrem.fromScene(this.skyScene, 0, 1, 40000);
+      this.scene.environment = this.envTarget.texture;
+    }
     this.scene.environmentIntensity = 0.45 + 0.25 * daylight;
 
     const fog = this.scene.fog as THREE.FogExp2;

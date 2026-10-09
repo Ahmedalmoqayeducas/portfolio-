@@ -197,9 +197,11 @@ export function updateEconomy(sim: Sim): void {
       const w = p.incomeWindow;
       let sum = 0;
       for (const v of w) sum += v;
-      p.incomeLast = sum;
-      p.incomePerSec = p.incomePerSec * 0.8 + (sum / 1) * 0.2;
       w.length = 0;
+      p.incomeHist.push(sum);
+      if (p.incomeHist.length > 15) p.incomeHist.shift();
+      p.incomeLast = sum;
+      p.incomePerSec = p.incomeHist.reduce((a, b) => a + b, 0) / p.incomeHist.length;
     }
   }
 }

@@ -288,3 +288,9 @@ export function buildMap(id: string): BuiltMap {
 export function spawnsFor(def: MapDef, n: number): number[] {
   return def.spawnSets[Math.min(Math.max(n, def.minPlayers), def.maxPlayers)] ?? def.spawnSets[def.maxPlayers];
 }
+
+/** index into def.spawns for player slot i of n */
+export function spawnIndex(def: MapDef, n: number, i: number): number {
+  const set = spawnsFor(def, n);
+  return set[i % set.length];
+}

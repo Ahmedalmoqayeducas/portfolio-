@@ -169,7 +169,7 @@ export function fireWeapon(sim: Sim, e: Entity, wi: number, t: Entity, sx?: numb
   };
   if (w.guided && t.def.kind !== 'structure') p.jam = jammedAt(sim, t);
   sim.projectiles.push(p);
-  sim.emitAt({ k: 'shot', vfx: w.vfx, x: mx, y: my, z: mz, tx: ax, ty: ay, tz: az, owner: e.owner, big: dmg > 100 }, mx, mz);
+  sim.emitAt({ k: 'shot', vfx: w.vfx, x: mx, y: my, z: mz, tx: ax, ty: ay, tz: az, owner: e.owner, big: dmg > 100, p: true }, mx, mz);
 }
 
 function startCooldown(e: Entity, wi: number): void {

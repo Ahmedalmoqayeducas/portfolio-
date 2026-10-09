@@ -95,7 +95,7 @@ const units: EntityDef[] = [
   }),
   unit({
     id: 'usa_truck', name: 'Supply Truck', faction: F, roles: ['truck'], cost: 500, time: 12, hp: 420, armor: 'light', radius: 3.2, vision: 50,
-    producedBy: 'usa_supply', speed: 9, move: 'wheel', cap: 600, model: { tpl: 'truck', style: 'usa' },
+    producedBy: 'usa_supply', speed: 9, move: 'wheel', cap: 300, model: { tpl: 'truck', style: 'usa' },
   }),
   unit({
     id: 'usa_rifle', name: 'Rifle Squad', faction: F, roles: ['infantry'], cost: 150, time: 6, hp: 170, armor: 'infantry', radius: 1.8, vision: 60,

@@ -1,12 +1,14 @@
 import type { EntityDef, FactionId, GeneralDef, PowerDef, UpgradeDef } from './types';
 import { neutralDefs } from './data/neutral';
 import { usaDefs, usaGenerals, usaPowers, usaUpgrades } from './data/usa';
+import { chinaDefs, chinaGenerals, chinaPowers, chinaUpgrades } from './data/china';
+import { iranDefs, iranGenerals, iranPowers, iranUpgrades } from './data/iran';
 
 /** Registry. All gameplay numbers live in ./data/*. Index order is stable on both threads. */
-const allDefs: EntityDef[] = [...neutralDefs, ...usaDefs];
-const allPowers: PowerDef[] = [...usaPowers];
-const allGenerals: GeneralDef[] = [...usaGenerals];
-const allUpgrades: UpgradeDef[] = [...usaUpgrades];
+const allDefs: EntityDef[] = [...neutralDefs, ...usaDefs, ...chinaDefs, ...iranDefs];
+const allPowers: PowerDef[] = [...usaPowers, ...chinaPowers, ...iranPowers];
+const allGenerals: GeneralDef[] = [...usaGenerals, ...chinaGenerals, ...iranGenerals];
+const allUpgrades: UpgradeDef[] = [...usaUpgrades, ...chinaUpgrades, ...iranUpgrades];
 
 export function registerFaction(defs: EntityDef[], powers: PowerDef[], generals: GeneralDef[], upgrades: UpgradeDef[]): void {
   allDefs.push(...defs); allPowers.push(...powers); allGenerals.push(...generals); allUpgrades.push(...upgrades);
