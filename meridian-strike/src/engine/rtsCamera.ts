@@ -50,17 +50,18 @@ export class RtsCamera {
   update(dt: number): void {
     const k = this.keys;
     let fx = 0, fz = 0;
-    if (k.has('KeyW') || k.has('ArrowUp')) fz -= 1;
-    if (k.has('KeyS') || k.has('ArrowDown')) fz += 1;
-    if (k.has('KeyA') || k.has('ArrowLeft')) fx -= 1;
-    if (k.has('KeyD') || k.has('ArrowRight')) fx += 1;
+    // arrow keys scroll (letters are command-card hotkeys, as in the classic games)
+    if (k.has('ArrowUp')) fz -= 1;
+    if (k.has('ArrowDown')) fz += 1;
+    if (k.has('ArrowLeft')) fx -= 1;
+    if (k.has('ArrowRight')) fx += 1;
     if (this.edgePan && this.mouse.inside && !this.mouse.mmb) {
       const m = 6, w = window.innerWidth, h = window.innerHeight;
       if (this.mouse.x < m) fx -= 1; else if (this.mouse.x > w - m) fx += 1;
       if (this.mouse.y < m) fz -= 1; else if (this.mouse.y > h - m) fz += 1;
     }
-    if (k.has('KeyQ')) this.yawGoal += 1.6 * dt;
-    if (k.has('KeyE')) this.yawGoal -= 1.6 * dt;
+    if (k.has('BracketLeft') || k.has('PageUp') || k.has('Comma')) this.yawGoal += 1.6 * dt;
+    if (k.has('BracketRight') || k.has('PageDown') || k.has('Period')) this.yawGoal -= 1.6 * dt;
 
     const speed = (this.distance * 1.1) * (k.has('ShiftLeft') || k.has('ShiftRight') ? 2.2 : 1);
     const sin = Math.sin(this.yaw), cos = Math.cos(this.yaw);

@@ -19,6 +19,7 @@ import { Weather } from '../render/weather';
 import { AudioSystem } from '../audio/audio';
 
 export interface SessionSetup {
+  replay?: import('../sim/types').CommandLogEntry[];
   map: string;
   players: PlayerSetup[];
   options: GameOptions;
@@ -58,6 +59,7 @@ export class GameSession {
   onExit: (() => void) | null = null;
   onEnd: ((snap: Snapshot) => void) | null = null;
   readonly viewer: number;
+  simSeed = 0;
 
   constructor(readonly engine: Engine, readonly setup: SessionSetup, opts: { local?: boolean } = {}) {
     const r = engine.renderer;
@@ -120,9 +122,10 @@ export class GameSession {
   };
 
   async start(): Promise<void> {
+    this.simSeed = this.setup.seed ?? ((Math.random() * 1e9) | 0);
     const init: InitMsg = {
-      map: this.setup.map, heights: this.built.hf.data, seed: this.setup.seed ?? ((Math.random() * 1e9) | 0),
-      players: this.setup.players, options: this.setup.options,
+      map: this.setup.map, heights: this.built.hf.data, seed: this.simSeed,
+      players: this.setup.players, options: this.setup.options, replay: this.setup.replay,
     };
     await this.host.start(init);
     this.hud = new Hud(this);
@@ -143,6 +146,28 @@ export class GameSession {
     this.host.command(this.viewer, cmd);
   }
 
+  async saveReplay(): Promise<void> {
+    const log = await this.host.getLog();
+    const data = { version: 1, game: 'meridian-strike', map: this.setup.map, seed: this.simSeed, players: this.setup.players, options: { ...this.setup.options, viewer: -1 }, log, ticks: this.snap?.tick ?? 0 };
+    const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `meridian-replay-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  }
+
+  private slowTimer = 0;
+  /** brief cinematic slow motion */
+  slowmo(seconds: number): void {
+    if (this.paused) return;
+    this.host.setSpeed(this.speed * 0.3);
+    clearTimeout(this.slowTimer);
+    this.slowTimer = window.setTimeout(() => this.host.setSpeed(this.speed), seconds * 1000);
+  }
+  private focus: { x: number; z: number; d: number; t: number } | null = null;
+  focusTo(x: number, z: number, d: number): void { this.focus = { x, z, d, t: 3.5 }; }
+
   setPaused(v: boolean): void { this.paused = v; this.host.setPaused(v); }
   setSpeed(v: number): void { this.speed = v; this.host.setSpeed(v); }
 
@@ -160,8 +185,8 @@ export class GameSession {
     this.audio.onSnapshot(s);
     if (s.winner && !this.ended) {
       this.ended = true;
-      this.hud?.showEnd(s);
-      this.onEnd?.(s);
+      this.slowmo(2.8);
+      window.setTimeout(() => { this.hud?.showEnd(s); this.onEnd?.(s); }, 3000);
     }
   }
 
@@ -181,6 +206,7 @@ export class GameSession {
       }
       case 'boom':
         vfx.explosion(ev.x, ev.y, ev.z, ev.size, ev.kind);
+        if (ev.kind === 'nuke') { this.slowmo(2.2); this.focusTo(ev.x, ev.z, 260); }
         this.audio.boom(ev, this.rts.target);
         break;
       case 'death': {
@@ -218,6 +244,14 @@ export class GameSession {
     const nowS = now / 1000;
 
     this.input?.frame(dt);
+    if (this.focus) {
+      const f = this.focus;
+      f.t -= dt;
+      this.rts.target.x += (f.x - this.rts.target.x) * Math.min(1, dt * 2.2);
+      this.rts.target.z += (f.z - this.rts.target.z) * Math.min(1, dt * 2.2);
+      if (f.d) { this.rts.setView(this.rts.distance + (f.d - this.rts.distance) * Math.min(1, dt * 1.6), this.rts.yaw); }
+      if (f.t <= 0) this.focus = null;
+    }
     this.rts.update(dt);
     // screen shake
     const sh = this.vfx.shakeValue(this.rts.target.x, this.rts.target.z);

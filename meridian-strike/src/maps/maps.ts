@@ -56,7 +56,7 @@ function evenSets(max: number, extra: Record<number, number[]> = {}): Record<num
 }
 
 /** Depots near a spawn: two on the flanks facing the map centre. */
-function baseDepots(spawn: [number, number], amount = 12000): [number, number, number][] {
+function baseDepots(spawn: [number, number], amount = 22000): [number, number, number][] {
   const [sx, sz] = spawn;
   const d = Math.hypot(sx, sz) || 1;
   const ux = -sx / d, uz = -sz / d; // towards centre
@@ -89,7 +89,7 @@ function redMesa(): MapDef {
   const spawns: [number, number][] = [[-360, -360], [360, 360], [360, -360], [-360, 360]];
   const pads: PadDef[] = spawns.map(([x, z]) => ({ x, z, r: 88 }));
   const depots = spawns.flatMap((s) => baseDepots(s));
-  depots.push([0, 410, 14000], [0, -410, 14000], [410, 0, 14000], [-410, 0, 14000]);
+  depots.push([0, 410, 30000], [0, -410, 30000], [410, 0, 30000], [-410, 0, 30000]);
   const derricks: [number, number][] = [[-38, -38], [38, 38], [38, -38], [-38, 38], [0, 300], [0, -300], [300, 0], [-300, 0]];
   for (const d of depots) pads.push({ x: d[0], z: d[1], r: 16 });
   for (const d of derricks) pads.push({ x: d[0], z: d[1], r: 12 });
@@ -100,7 +100,7 @@ function redMesa(): MapDef {
   roads.push({ pts: [[-360, -360], [0, -360], [360, -360]], width: 20 }, { pts: [[-360, 360], [0, 360], [360, 360]], width: 20 });
   return {
     id: 'red_mesa', name: 'Red Mesa', desc: 'Two-to-four player canyon duel. Terraced plateaus, graded ramps and a contested oil field in the central basin.',
-    minPlayers: 2, maxPlayers: 4, size: 1024, res: 513, seed: 1337, biome: 'desert', hour: 15.5, cycle: 0, weather: 'none', waterLevel: null,
+    sym: 4, minPlayers: 2, maxPlayers: 4, size: 1024, res: 513, seed: 1337, biome: 'desert', hour: 15.5, cycle: 0, weather: 'none', waterLevel: null,
     spawns, spawnSets: { 2: [0, 1], 3: [0, 1, 2], 4: [0, 1, 2, 3] }, depots, derricks, civ: [], roads, pads,
     props: { rocks: 1400, trees: 0, treeKind: 'none' },
     raw: (x, z, n) => {
@@ -126,8 +126,8 @@ function harborLine(): MapDef {
   const spawns = ring(6, rx, rz, Math.PI / 6);
   const rng = mulberry32(2025);
   const pads: PadDef[] = spawns.map(([x, z]) => ({ x, z, r: 88 }));
-  const depots = spawns.flatMap((s) => baseDepots(s, 11000));
-  depots.push([0, -330, 12000], [0, 300, 12000]);
+  const depots = spawns.flatMap((s) => baseDepots(s, 20000));
+  depots.push([0, -330, 26000], [0, 300, 26000]);
   const derricks: [number, number][] = [[-90, 0], [90, 0], [0, -90], [0, 90], [-300, -300], [300, -300]];
   for (const d of depots) pads.push({ x: d[0], z: d[1], r: 16 });
   for (const d of derricks) pads.push({ x: d[0], z: d[1], r: 14 });
@@ -161,14 +161,14 @@ function oasisCrown(): MapDef {
   const spawns = ring(6, 470, 470, 0);
   const pads: PadDef[] = spawns.map(([x, z]) => ({ x, z, r: 88 }));
   const depots = spawns.flatMap((s) => baseDepots(s));
-  for (const [x, z] of ring(6, 235, 235, Math.PI / 6)) depots.push([x, z, 14000]);
+  for (const [x, z] of ring(6, 235, 235, Math.PI / 6)) depots.push([x, z, 28000]);
   const derricks: [number, number][] = [...ring(6, 330, 330, Math.PI / 3)];
   for (const d of depots) pads.push({ x: d[0], z: d[1], r: 16 });
   for (const d of derricks) pads.push({ x: d[0], z: d[1], r: 12 });
   const roads: RoadDef[] = spawns.map(([x, z]) => ({ pts: [[x, z], [x * 0.55, z * 0.55], [x * 0.38, z * 0.38]], width: 22 }));
   return {
     id: 'oasis_crown', name: 'Oasis Crown', desc: 'Six-player dune sea around a central oasis. Dunes hide ambushes and sandstorms sweep the battlefield.',
-    minPlayers: 2, maxPlayers: 6, size: 1280, res: 513, seed: 777, biome: 'oasis', hour: 13, cycle: 0, weather: 'sandstorm', waterLevel: 0,
+    sym: 6, minPlayers: 2, maxPlayers: 6, size: 1280, res: 513, seed: 777, biome: 'oasis', hour: 13, cycle: 0, weather: 'sandstorm', waterLevel: 0,
     spawns, spawnSets: evenSets(6), depots, derricks, civ: [], roads, pads,
     props: { rocks: 700, trees: 520, treeKind: 'palm', treeAt: (x, z) => 1 - smooth(150, 300, Math.hypot(x, z)) },
     raw: (x, z, n) => {
@@ -187,8 +187,8 @@ function highlandPass(): MapDef {
   const R = 620;
   const spawns = ring(8, R, R, Math.PI / 8);
   const pads: PadDef[] = spawns.map(([x, z]) => ({ x, z, r: 88 }));
-  const depots = spawns.flatMap((s) => baseDepots(s, 10000));
-  for (const [x, z] of ring(8, 330, 330, 0)) depots.push([x, z, 12000]);
+  const depots = spawns.flatMap((s) => baseDepots(s, 20000));
+  for (const [x, z] of ring(8, 330, 330, 0)) depots.push([x, z, 24000]);
   const derricks: [number, number][] = [...ring(4, 60, 60, Math.PI / 4), ...ring(8, 450, 450, 0)];
   for (const d of depots) pads.push({ x: d[0], z: d[1], r: 16 });
   for (const d of derricks) pads.push({ x: d[0], z: d[1], r: 12 });
@@ -201,7 +201,7 @@ function highlandPass(): MapDef {
   const angs = spawns.map(([x, z]) => Math.atan2(z, x));
   return {
     id: 'highland_pass', name: 'Highland Pass', desc: 'Eight-player alpine valleys linked by narrow passes. Great for artillery and air; the snow never stops.',
-    minPlayers: 2, maxPlayers: 8, size: 1536, res: 513, seed: 91, biome: 'highland', hour: 9.5, cycle: 0, weather: 'snow', waterLevel: null,
+    sym: 8, minPlayers: 2, maxPlayers: 8, size: 1536, res: 769, seed: 91, biome: 'highland', hour: 9.5, cycle: 0, weather: 'snow', waterLevel: null,
     spawns, spawnSets: evenSets(8), depots, derricks, civ: [], roads, pads,
     props: { rocks: 900, trees: 700, treeKind: 'pine', treeAt: (x, z, n) => smooth(-0.1, 0.3, n.fbm(x * 0.01, z * 0.01, 3)) },
     raw: (x, z, n) => {
@@ -227,8 +227,8 @@ function grandMeridian(): MapDef {
   const spawns = ring(10, R, R, 0);
   const rng = mulberry32(31337);
   const pads: PadDef[] = spawns.map(([x, z]) => ({ x, z, r: 88 }));
-  const depots = spawns.flatMap((s) => baseDepots(s, 12000));
-  for (const [x, z] of ring(10, 540, 540, Math.PI / 10)) depots.push([x, z, 14000]);
+  const depots = spawns.flatMap((s) => baseDepots(s, 22000));
+  for (const [x, z] of ring(10, 540, 540, Math.PI / 10)) depots.push([x, z, 28000]);
   const derricks: [number, number][] = [...ring(6, 70, 70, 0), ...ring(10, 420, 420, Math.PI / 10), ...ring(10, 880, 880, Math.PI / 10)];
   for (const d of depots) pads.push({ x: d[0], z: d[1], r: 16 });
   for (const d of derricks) pads.push({ x: d[0], z: d[1], r: 12 });
@@ -247,7 +247,7 @@ function grandMeridian(): MapDef {
   }, 0.85);
   return {
     id: 'grand_meridian', name: 'Grand Meridian', desc: 'Ten-player world war. Ten radial bases around a central metropolis; desert, forest and hills, with a day that turns to night.',
-    minPlayers: 2, maxPlayers: 10, size: 2048, res: 641, seed: 2026, biome: 'mixed', hour: 7.5, cycle: 0.6, weather: 'dust', waterLevel: null,
+    sym: 10, minPlayers: 2, maxPlayers: 10, size: 2048, res: 641, seed: 2026, biome: 'mixed', hour: 7.5, cycle: 0.6, weather: 'dust', waterLevel: null,
     spawns, spawnSets: evenSets(10), depots, derricks, civ, roads, pads,
     props: {
       rocks: 1600, trees: 1400, treeKind: 'tree',

@@ -23,7 +23,7 @@ export class PostStack {
     this.gtao.updateGtaoMaterial({ radius: 3.5, distanceExponent: 1.4, thickness: 3, scale: 1.1, samples: 16 });
     this.gtao.blendIntensity = 0.9;
     this.composer.addPass(this.gtao);
-    this.bloom = new UnrealBloomPass(size, 0.22, 0.6, 1.4);
+    this.bloom = new UnrealBloomPass(size, 0.16, 0.5, 1.9);
     this.composer.addPass(this.bloom);
     this.composer.addPass(new OutputPass());
     this.smaa = new SMAAPass(size.x, size.y);

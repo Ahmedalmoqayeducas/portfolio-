@@ -150,3 +150,11 @@ button.big.danger:hover { border-color: var(--bad); }
 .helptext { color: var(--dim); font-size: 12px; margin-top: 8px; line-height: 1.5; }
 .loading { position: fixed; inset: 0; display: grid; place-items: center; background: #070a0d; z-index: 60; font-size: 28px; letter-spacing: .4em; color: var(--acc); }
 @media (max-width: 1100px) { .lobby { grid-template-columns: 1fr; } }
+
+.slots select.s-type { min-width: 92px; }
+.slots select.s-fac { min-width: 138px; }
+.slots select.s-gen { min-width: 200px; }
+.slots select.s-dif { min-width: 92px; }
+.slots select.s-per { min-width: 100px; }
+.row-btns .big:disabled { opacity: .4; }
+.slots input.s-name { min-width: 120px; width: 120px; }

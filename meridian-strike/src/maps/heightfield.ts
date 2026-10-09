@@ -18,6 +18,8 @@ export interface HeightSource {
   roads: RoadDef[];
   pads: PadDef[];
   waterLevel?: number | null;
+  /** n-fold rotational symmetry of the raw terrain (fair spawns) */
+  sym?: number;
 }
 
 /** Pure heightfield: shared by sim (nav, LOS, placement) and renderer. */
@@ -61,7 +63,21 @@ export function generateHeights(src: HeightSource): { heights: Float32Array; roa
   const half = src.size / 2;
   const noise = new Noise2D(src.seed);
   const raw = new Float32Array(N * N);
-  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) raw[j * N + i] = src.raw(i * step - half, j * step - half, noise);
+  const symN = src.sym ?? 1;
+  const rawAt = (x: number, z: number): number => {
+    if (symN <= 1) return src.raw(x, z, noise);
+    const r = Math.hypot(x, z), ang = Math.atan2(z, x);
+    let sw = 0, sh = 0;
+    for (let k = 0; k < symN; k++) {
+      const a = ang + (k * Math.PI * 2) / symN;
+      const w = Math.max(1e-3, Math.cos(a)) ** 3;
+      if (w < 2e-3 && sw > 0) continue;
+      sh += w * src.raw(r * Math.cos(a), r * Math.sin(a), noise);
+      sw += w;
+    }
+    return sh / sw;
+  };
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) raw[j * N + i] = rawAt(i * step - half, j * step - half);
 
   const sampleRaw = (x: number, z: number) => {
     const gx = Math.min(N - 1.001, Math.max(0, (x + half) / step));

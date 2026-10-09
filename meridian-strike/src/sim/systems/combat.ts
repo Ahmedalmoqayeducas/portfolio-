@@ -125,7 +125,7 @@ export function fireWeapon(sim: Sim, e: Entity, wi: number, t: Entity, sx?: numb
     const s = w.spread * Math.min(1, dist / Math.max(1, w.range));
     ax += (sim.rng() - 0.5) * 2 * s; az += (sim.rng() - 0.5) * 2 * s;
   }
-  const swarm = e.swarmed ? 1.12 : 1;
+  const swarm = (e.swarmed ? 1.08 : 1) * (e.netted ? 1.18 : 1);
   const dmg = w.damage * e.dmgMul * swarm;
   const vfxIdx = VFX_INDEX.get(w.vfx) ?? 0;
   if (e.def.stealth) e.reveal = Math.max(e.reveal, (e.def.stealth.reveal ?? 3) * TICK_RATE);
@@ -200,6 +200,15 @@ export function combatTick(sim: Sim): void {
     const e = list[i];
     if (!e.alive) continue;
     const d = e.def;
+    if (d.network && (tick + e.id) % 20 === 0) {
+      const near = sim.hash.query(list, e.x, e.z, 330, sim.tmp2);
+      let on = false;
+      for (const f of near) {
+        if (f.team !== e.team || !f.def.netNode || f.progress < 1 || !f.powered) continue;
+        if ((f.x - e.x) ** 2 + (f.z - e.z) ** 2 <= f.def.netNode * f.def.netNode) { on = true; break; }
+      }
+      e.netted = on;
+    }
     if (d.swarm && (tick + e.id) % 15 === 0) {
       const near = sim.hash.query(list, e.x, e.z, 40, sim.tmp2);
       let c = 0;
@@ -297,7 +306,7 @@ export function damage(sim: Sim, victim: Entity, amount: number, dtype: DamageTy
   const mult = DAMAGE_MATRIX[dtype][victim.def.armor];
   if (mult <= 0 || amount <= 0) return;
   let dmg = amount * mult;
-  if (victim.swarmed) dmg *= 0.85;
+  if (victim.swarmed) dmg *= 0.9;
   if (victim.inside) return;
   victim.hp -= dmg;
   victim.lastHit = sim.tick;

@@ -354,6 +354,7 @@ export class InputController {
       return;
     }
     if (e.code === 'Space') { this.s.hud.jumpToAlert(); e.preventDefault(); return; }
+    if (e.code === 'F10') { const h = document.getElementById('hud'); if (h) h.style.display = h.style.display === 'none' ? '' : 'none'; e.preventDefault(); return; }
     if (e.code === 'KeyH' && e.altKey) { this.s.hud.centerOnBase(); return; }
     // control groups
     const dm = /^Digit([0-9])$/.exec(e.code);

@@ -326,7 +326,7 @@ class ShockLayer {
       this.m.makeScale(r, 1, r).setPosition(this.pos[i * 3], this.pos[i * 3 + 1], this.pos[i * 3 + 2]);
       this.m.elements[12] = this.pos[i * 3]; this.m.elements[13] = this.pos[i * 3 + 1]; this.m.elements[14] = this.pos[i * 3 + 2];
       this.mesh.setMatrixAt(i, this.m);
-      a[i] = (1 - t) * 0.55;
+      a[i] = (1 - t) * 0.3;
     }
     this.mesh.instanceMatrix.needsUpdate = true;
     this.alpha.needsUpdate = true;
@@ -442,8 +442,8 @@ export class Vfx {
 
   muzzle(x: number, y: number, z: number, dx: number, dz: number, kind: string, big: boolean): void {
     const r = Math.random;
-    const s = kind === 'cannon' || big ? 3.6 : kind === 'missile' || kind === 'rocket' ? 2.8 : kind === 'shell' ? 5.5 : 1.3;
-    this.glow.spawn(x + dx, y, z + dz, 0, 0, 0, 0.09, s, s * 0.35, 0xfff0c0, 0xff8a30, 1, 0, 2, 0, 3, 0, 80);
+    const s = kind === 'cannon' || big ? 2.2 : kind === 'missile' || kind === 'rocket' ? 1.7 : kind === 'shell' ? 3.2 : 0.8;
+    this.glow.spawn(x + dx, y, z + dz, 0, 0, 0, 0.08, s, s * 0.35, 0xfff0c0, 0xff8a30, 0.8, 0, 2, 0, 3, 0, 80);
     if (s > 2) {
       const n = kind === 'shell' ? 7 : 4;
       for (let i = 0; i < n; i++) this.smoke.spawn(x + dx * 1.5, y, z + dz * 1.5, dx * (2 + r() * 5) + (r() - 0.5) * 2, 0.6 + r() * 1.5, dz * (2 + r() * 5) + (r() - 0.5) * 2, 0.9 + r() * 0.9, 0.9, 3.2 + s * 0.4, 0xc8c4bc, 0x8a8782, 0.4, 0, 1.5, -0.2, 1, (r() - 0.5), 12);
@@ -466,7 +466,7 @@ export class Vfx {
 
   hit(x: number, y: number, z: number, big = false): void {
     const r = Math.random;
-    this.glow.spawn(x, y, z, 0, 0, 0, 0.09, big ? 2.2 : 1.1, 0.3, 0xffe0a0, 0xff7a20, 0.9, 0, 2, 0, 2, 0, 80);
+    this.glow.spawn(x, y, z, 0, 0, 0, 0.08, big ? 1.4 : 0.7, 0.2, 0xffe0a0, 0xff7a20, 0.7, 0, 2, 0, 2, 0, 80);
     for (let i = 0; i < (big ? 6 : 3); i++) this.glow.spawn(x, y, z, (r() - 0.5) * 12, 3 + r() * 8, (r() - 0.5) * 12, 0.35 + r() * 0.3, 0.35, 0.05, 0xffd890, 0xff5a10, 1, 0, 0.8, 22, 2, 0, 40);
     this.smoke.spawn(x, y, z, (r() - 0.5), 1 + r(), (r() - 0.5), 0.9, 0.8, 2.2, 0x6a625a, 0x3a3733, 0.4, 0, 1, -0.2, 1, 0.3, 14);
   }
@@ -489,18 +489,18 @@ export class Vfx {
       return;
     }
     // core flash
-    this.glow.spawn(x, y + 0.5, z, 0, 0.5, 0, 0.18 + s * 0.04, 2.5 + s * 4, 4 + s * 8, 0xfff0c0, 0xff8a30, 1, 0, 2, 0, 3, 0, 60);
+    this.glow.spawn(x, y + 0.5, z, 0, 0.5, 0, 0.13 + s * 0.03, 1.1 + s * 1.5, 2.0 + s * 3.0, 0xfff0c0, 0xff8a30, 0.75, 0, 2, 0, 3, 0, 60);
     // fireball
-    const nf = Math.floor(4 + s * 4);
+    const nf = Math.floor(3 + s * 2.5);
     for (let i = 0; i < nf; i++) {
       const a = r() * 6.28, sp = (1 + r() * 3) * (0.6 + s * 0.35);
-      this.glow.spawn(x + Math.cos(a) * s * 0.4, y + 0.4 + r() * s * 0.5, z + Math.sin(a) * s * 0.4, Math.cos(a) * sp, 1 + r() * 3 * s * 0.4, Math.sin(a) * sp, 0.45 + r() * 0.5 + s * 0.07, 1.6 + s * 1.3, 2.6 + s * 2.6, 0xffc060, 0xc02808, 0.95, 0, 1.2, -0.5, 0, (r() - 0.5) * 2, 20);
+      this.glow.spawn(x + Math.cos(a) * s * 0.4, y + 0.4 + r() * s * 0.5, z + Math.sin(a) * s * 0.4, Math.cos(a) * sp, 1 + r() * 3 * s * 0.4, Math.sin(a) * sp, 0.4 + r() * 0.4 + s * 0.06, 0.9 + s * 0.8, 1.6 + s * 1.5, 0xffb050, 0xb02208, 0.62, 0, 1.2, -0.5, 0, (r() - 0.5) * 2, 20);
     }
     // smoke column
     const ns = Math.floor(3 + s * 3.2);
     for (let i = 0; i < ns; i++) {
       const a = r() * 6.28, sp = r() * 2.2 * (0.5 + s * 0.3);
-      this.smoke.spawn(x + Math.cos(a) * s * 0.5, y + 0.8 + r() * s, z + Math.sin(a) * s * 0.5, Math.cos(a) * sp, 2.5 + r() * 2.5 + s * 0.5, Math.sin(a) * sp, 2.2 + r() * 2.5 + s * 0.6, 1.4 + s * 0.8, 4.5 + s * 3.2, i % 3 === 0 ? 0x2a2826 : 0x4a4744, 0x181716, 0.62, 0, 0.5, -0.45, 1, (r() - 0.5) * 0.6, 6);
+      this.smoke.spawn(x + Math.cos(a) * s * 0.5, y + 0.8 + r() * s, z + Math.sin(a) * s * 0.5, Math.cos(a) * sp, 2.5 + r() * 2.5 + s * 0.5, Math.sin(a) * sp, 2.2 + r() * 2.5 + s * 0.6, 1.1 + s * 0.6, 3.5 + s * 2.4, i % 3 === 0 ? 0x2a2826 : 0x4a4744, 0x181716, 0.5, 0, 0.5, -0.45, 1, (r() - 0.5) * 0.6, 6);
     }
     // sparks
     const nsp = Math.floor(5 + s * 6);
@@ -518,9 +518,9 @@ export class Vfx {
       const nr = Math.floor(5 + s * 3);
       for (let i = 0; i < nr; i++) {
         const a = (i / nr) * 6.28 + r(), sp = 6 + s * 2.2;
-        this.smoke.spawn(x + Math.cos(a) * 1.5, gy + 0.6, z + Math.sin(a) * 1.5, Math.cos(a) * sp, 0.4, Math.sin(a) * sp, 1.2 + r() * 0.8, 1.4 + s * 0.6, 3.6 + s * 1.8, 0xb59a74, 0x8a7a60, 0.34, 0, 2.6, 0, 1, (r() - 0.5), 10);
+        this.smoke.spawn(x + Math.cos(a) * 1.5, gy + 0.6, z + Math.sin(a) * 1.5, Math.cos(a) * sp, 0.4, Math.sin(a) * sp, 1.2 + r() * 0.8, 1.2 + s * 0.5, 3.0 + s * 1.4, 0xb59a74, 0x8a7a60, 0.2, 0, 2.6, 0, 1, (r() - 0.5), 10);
       }
-      if (s >= 1.2) this.shocks.add(x, gy + 0.4, z, 5 + s * 5.5, 0.55 + s * 0.05, 0xffd8a0);
+      if (s >= 2.2) this.shocks.add(x, gy + 0.4, z, 4 + s * 4, 0.5 + s * 0.04, 0xffd8a0);
       if (s >= 0.8) this.decals.add(x, gy, z, 3 + s * 3.6, r() * 6.28, 70 + s * 15);
     }
     this.pointLight(x, y, z, 3 + s * 2.4);
@@ -542,6 +542,18 @@ export class Vfx {
   }
 
   structureDeath(x: number, y: number, z: number, radius: number): void {
+    const r = Math.random;
+    const n = Math.floor(12 + radius * 1.6);
+    for (let i = 0; i < n; i++) {
+      const a = r() * 6.28, sp = 4 + r() * (8 + radius * 0.5);
+      this.smoke.spawn(x + Math.cos(a) * radius * 0.4, y + 3 + r() * radius * 0.4, z + Math.sin(a) * radius * 0.4, Math.cos(a) * sp, 10 + r() * 14, Math.sin(a) * sp, 1.4 + r() * 1.6, 0.9 + r() * 1.8, 0.8 + r(), 0x575048, 0x2e2a26, 0.95, 0, 0.1, 22, 0, (r() - 0.5) * 6, 40);
+    }
+    for (let i = 0; i < 7; i++) {
+      const a = (i / 7) * 6.28 + r(), sp = 8 + radius * 0.5;
+      this.smoke.spawn(x + Math.cos(a) * radius * 0.5, y + 1.5, z + Math.sin(a) * radius * 0.5, Math.cos(a) * sp, 1.2, Math.sin(a) * sp, 3 + r() * 2, 2.5 + radius * 0.2, 8 + radius * 0.9, 0xb8a27c, 0x8a7b62, 0.5, 0, 1.6, 0, 1, (r() - 0.5) * 0.4, 6);
+    }
+    this.glow.spawn(x, y + radius * 0.5, z, 0, 2, 0, 0.5, radius * 0.6, radius * 2.2, 0xffd890, 0xd04810, 0.9, 0, 2, 0, 0, 0, 20);
+    this.shakeAt(x, z, Math.min(2.2, radius * 0.1));
     this.fireAt(x, y, z, 40 + radius * 2, Math.max(1, radius / 10));
     this.smokeAt(x, y + 2, z, 90);
     this.decals.add(x, y, z, radius * 2.2, Math.random() * 6.28, 240);

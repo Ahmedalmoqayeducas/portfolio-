@@ -2,14 +2,15 @@
 import { Sim } from './sim';
 import { HeightField } from '../maps/heightfield';
 import { MAP_BY_ID } from '../maps/maps';
-import { Command, DT, InitMsg, SimEvent } from './types';
+import { Command, CommandLogEntry, DT, InitMsg, SimEvent } from './types';
 
 type In =
   | { t: 'init'; init: InitMsg }
   | { t: 'cmd'; pid: number; cmd: Command }
   | { t: 'speed'; v: number }
   | { t: 'pause'; v: boolean }
-  | { t: 'viewer'; v: number };
+  | { t: 'viewer'; v: number }
+  | { t: 'getLog' };
 
 let sim: Sim | null = null;
 let speed = 1;
@@ -19,6 +20,9 @@ let last = 0;
 let postCount = 0;
 let timer: ReturnType<typeof setInterval> | null = null;
 let events: SimEvent[] = [];
+let log: CommandLogEntry[] = [];
+let replay: CommandLogEntry[] | null = null;
+let replayIdx = 0;
 
 function loop(): void {
   if (!sim) return;
@@ -29,6 +33,7 @@ function loop(): void {
   accum += elapsed * speed;
   let steps = 0;
   while (accum >= DT && steps < 8) {
+    if (replay) while (replayIdx < replay.length && replay[replayIdx].t <= sim.tick + 1) { const c = replay[replayIdx++]; sim.queueCommand(c.pid, c.cmd); }
     sim.step();
     for (const e of sim.events) events.push(e);
     accum -= DT;
@@ -55,6 +60,7 @@ self.onmessage = (e: MessageEvent<In>) => {
       const def = MAP_BY_ID[m.init.map];
       const hf = new HeightField(def.size, def.res, m.init.heights);
       sim = new Sim(m.init, hf);
+      log = []; replay = m.init.replay ?? null; replayIdx = 0;
       speed = m.init.options.speed;
       last = performance.now();
       if (timer) clearInterval(timer);
@@ -62,7 +68,8 @@ self.onmessage = (e: MessageEvent<In>) => {
       (self as unknown as Worker).postMessage({ t: 'ready' });
       break;
     }
-    case 'cmd': sim?.queueCommand(m.pid, m.cmd); break;
+    case 'cmd': if (sim && !replay) { log.push({ t: sim.tick + 1, pid: m.pid, cmd: m.cmd }); sim.queueCommand(m.pid, m.cmd); } break;
+    case 'getLog': (self as unknown as Worker).postMessage({ t: 'log', log, tick: sim?.tick ?? 0 }); break;
     case 'speed': speed = m.v; break;
     case 'pause': paused = m.v; last = performance.now(); break;
     case 'viewer': if (sim) { sim.options.viewer = m.v; sim.viewTeam = m.v >= 0 ? sim.players[m.v]?.team ?? 0 : -1; } break;

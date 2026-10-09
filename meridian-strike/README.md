@@ -26,13 +26,13 @@ Open the page, choose **Skirmish**, pick a map / armies / team numbers and **Sta
 
 | | |
 |---|---|
-| Camera | WASD / arrows / screen edge, Q E or middle-mouse rotate, wheel zoom, Shift = fast, Space = last alert, Alt+H = base |
+| Camera | arrow keys / screen edge scroll, [ ] or , . or middle-mouse rotate, wheel zoom, Shift = fast, Space = last alert, Alt+H = base |
 | Select | click, drag-box, double-click = same type, Shift add, Ctrl+1-9 groups, 1-9 recall, Ctrl+A |
 | Orders | right-click (move / attack / capture / garrison / harvest / repair), A attack-move, S stop, D scatter, F patrol, Q capture, W garrison, E hide/deploy, Z X C V stances |
 | Build | select a Dozer → command card → click to place (Shift = keep placing) |
 | Production | select a structure → Q W E R / A S D F / Z X C V, Shift = ×5, right-click an item cancels, Y = rally |
 | Powers | spend ★ command points on the right panel, then click the target; superweapon button when charged |
-| Misc | Esc menu, `~` perf overlay, Delete = sell |
+| Misc | Esc menu, `~` perf overlay, F10 hide interface, Delete = sell, pause menu → *Save replay* (main menu → *Watch replay*) |
 
 ## Architecture
 

@@ -11,7 +11,7 @@ const structs: EntityDef[] = [
   }),
   structure({
     id: 'china_power', name: 'Nuclear Power Plant', faction: F, roles: ['structure', 'economy'], slot: 'power', cost: 700, time: 18, hp: 1500,
-    vision: 50, footprint: [20, 20], power: 26, tech: ['china_cc'],
+    vision: 50, footprint: [20, 20], power: 24, tech: ['china_cc'],
     model: { tpl: 'reactor', style: 'china', w: 20, d: 20 },
   }),
   structure({
@@ -97,10 +97,10 @@ const units: EntityDef[] = [
   }),
   unit({
     id: 'china_truck', name: 'Supply Truck', faction: F, roles: ['truck'], cost: 450, time: 11, hp: 440, armor: 'light', radius: 3.2, vision: 50,
-    producedBy: 'china_supply', speed: 9, move: 'wheel', cap: 360, model: { tpl: 'truck', style: 'china' },
+    producedBy: 'china_supply', speed: 9, move: 'wheel', cap: 300, model: { tpl: 'truck', style: 'china' },
   }),
   unit({
-    id: 'china_militia', name: 'Militia Squad', faction: F, roles: ['infantry', 'militia'], cost: 100, time: 4.5, hp: 130, armor: 'infantry', radius: 1.8, vision: 55, swarm: 6, batch: 3,
+    id: 'china_militia', name: 'Militia Squad', faction: F, roles: ['infantry', 'militia'], cost: 110, time: 4.5, hp: 115, armor: 'infantry', radius: 1.8, vision: 55, swarm: 6, batch: 3,
     producedBy: 'china_barracks', speed: 4.3, move: 'foot', captures: true, canGarrison: true,
     weapons: [weapon({ id: 'type81', name: 'Type 81', damage: 7, dtype: 'smallarms', range: 22, reload: 0.5, targets: ['ground', 'air'], vfx: 'bullet', mount: [0, 1.3, 0.8], fixed: true })],
     model: { tpl: 'infantry', style: 'china', n: 4, kit: 'rifle', militia: true },
@@ -124,7 +124,7 @@ const units: EntityDef[] = [
     model: { tpl: 'infantry', style: 'china', n: 3, kit: 'laptop' },
   }),
   unit({
-    id: 'china_zbd04', name: 'ZBD-04A IFV', faction: F, roles: ['ifv'], cost: 700, time: 13, hp: 880, armor: 'heavy', radius: 4, vision: 80, swarm: 6,
+    id: 'china_zbd04', name: 'ZBD-04A IFV', faction: F, roles: ['ifv'], cost: 740, time: 13, hp: 880, armor: 'heavy', radius: 4, vision: 80, swarm: 6,
     producedBy: 'china_armor', speed: 6.7, move: 'track', turret: 2.6,
     weapons: [
       weapon({ id: 'zpt99', name: '100mm Gun', damage: 50, dtype: 'ap', range: 46, reload: 2.2, speed: 180, targets: ['ground'], vfx: 'cannon', aoe: 2, mount: [0, 3, 3] }),
@@ -133,7 +133,7 @@ const units: EntityDef[] = [
     model: { tpl: 'tank', style: 'china', len: 7.8, wid: 3.3, turretLen: 2.6, gun: 3.4, ifv: true },
   }),
   unit({
-    id: 'china_ztz96', name: 'ZTZ-96B', faction: F, roles: ['tank'], cost: 750, time: 13, hp: 860, armor: 'heavy', radius: 4.4, vision: 75, swarm: 6,
+    id: 'china_ztz96', name: 'ZTZ-96B', faction: F, roles: ['tank'], cost: 850, time: 13, hp: 780, armor: 'heavy', radius: 4.4, vision: 75, swarm: 6,
     producedBy: 'china_armor', speed: 5.4, move: 'track', turret: 2.1,
     weapons: [
       weapon({ id: 'zpt98', name: '125mm Gun', damage: 110, dtype: 'ap', range: 54, reload: 3.0, speed: 210, targets: ['ground'], vfx: 'cannon', aoe: 2.5, mount: [0, 3, 5], spread: 2.5 }),
@@ -142,7 +142,7 @@ const units: EntityDef[] = [
     model: { tpl: 'tank', style: 'china', len: 9, wid: 3.6, turretLen: 3.3, gun: 5, era: true },
   }),
   unit({
-    id: 'china_ztz99', name: 'ZTZ-99A', faction: F, roles: ['tank'], cost: 1100, time: 17, hp: 1050, armor: 'heavy', radius: 4.6, vision: 80, aps: 18, swarm: 6,
+    id: 'china_ztz99', name: 'ZTZ-99A', faction: F, roles: ['tank'], cost: 1200, time: 17, hp: 1050, armor: 'heavy', radius: 4.6, vision: 80, aps: 18, swarm: 6,
     producedBy: 'china_armor', speed: 5.2, move: 'track', turret: 2.2, tech: ['china_radar'],
     weapons: [
       weapon({ id: 'zpt98b', name: '125mm Gun', damage: 130, dtype: 'ap', range: 58, reload: 2.8, speed: 230, targets: ['ground'], vfx: 'cannon', aoe: 2.5, mount: [0, 3, 5], spread: 2 }),
@@ -151,15 +151,15 @@ const units: EntityDef[] = [
     model: { tpl: 'tank', style: 'china', len: 9.8, wid: 3.8, turretLen: 3.6, gun: 5.4, era: true },
   }),
   unit({
-    id: 'china_type15', name: 'Type 15 Light Tank', faction: F, roles: ['tank', 'scout'], cost: 900, time: 14, hp: 720, armor: 'light', radius: 4, vision: 90, swarm: 6,
+    id: 'china_type15', name: 'Type 15 Light Tank', faction: F, roles: ['tank', 'scout'], cost: 950, time: 14, hp: 720, armor: 'light', radius: 4, vision: 90, swarm: 6,
     producedBy: 'china_armor', speed: 7.2, move: 'track', turret: 2.8,
     weapons: [weapon({ id: 'zpl15', name: '105mm Gun', damage: 100, dtype: 'ap', range: 54, reload: 2.4, speed: 220, targets: ['ground'], vfx: 'cannon', aoe: 2.2, mount: [0, 3, 4], spread: 2 })],
     model: { tpl: 'tank', style: 'china', len: 8.2, wid: 3.3, turretLen: 3, gun: 4.4 },
   }),
   unit({
-    id: 'china_plz05', name: 'PLZ-05 Howitzer', faction: F, roles: ['artillery'], cost: 950, time: 17, hp: 540, armor: 'light', radius: 4.2, vision: 70,
+    id: 'china_plz05', name: 'PLZ-05 Howitzer', faction: F, roles: ['artillery'], cost: 1000, time: 17, hp: 540, armor: 'light', radius: 4.2, vision: 70,
     producedBy: 'china_armor', speed: 4.2, move: 'track', turret: 0.7, tech: ['china_supply'],
-    weapons: [weapon({ id: 'plz_gun', name: '155mm Howitzer', damage: 165, dtype: 'artillery', range: 145, minRange: 30, reload: 5.8, speed: 110, arc: 0.45, aoe: 10, targets: ['ground'], vfx: 'shell', mount: [0, 3.2, 5], spread: 8 })],
+    weapons: [weapon({ id: 'plz_gun', name: '155mm Howitzer', damage: 140, dtype: 'artillery', range: 145, minRange: 30, reload: 5.8, speed: 110, arc: 0.45, aoe: 10, targets: ['ground'], vfx: 'shell', mount: [0, 3.2, 5], spread: 8 })],
     model: { tpl: 'artillery', style: 'china', len: 9, wid: 3.4, gun: 6.5 },
   }),
   unit({
@@ -175,9 +175,9 @@ const units: EntityDef[] = [
     model: { tpl: 'sam', style: 'china', len: 8, wid: 3, tubes: 4, mobile: true },
   }),
   unit({
-    id: 'china_wingloong', name: 'Wing Loong II', faction: F, roles: ['drone', 'heli'], cost: 900, time: 16, hp: 230, armor: 'drone', radius: 3, vision: 120,
+    id: 'china_wingloong', name: 'Wing Loong II', faction: F, roles: ['drone', 'heli'], cost: 1050, time: 16, hp: 230, armor: 'drone', radius: 3, vision: 120,
     producedBy: 'china_airfield', speed: 24, move: 'drone', layer: 'air', fly: 46, rearm: true, tech: ['china_radar'], detector: 40,
-    weapons: [weapon({ id: 'bd7', name: 'BA-7 Missiles', damage: 75, dtype: 'missile', range: 58, reload: 4, salvo: 2, salvoGap: 0.4, speed: 100, targets: ['ground'], guided: true, vfx: 'missile', ammo: 8, aoe: 3, mount: [0, -1, 2], fixed: true })],
+    weapons: [weapon({ id: 'bd7', name: 'BA-7 Missiles', damage: 65, dtype: 'missile', range: 58, reload: 4, salvo: 2, salvoGap: 0.4, speed: 100, targets: ['ground'], guided: true, vfx: 'missile', ammo: 8, aoe: 3, mount: [0, -1, 2], fixed: true })],
     model: { tpl: 'drone', style: 'china', span: 20, len: 9 },
   }),
   unit({

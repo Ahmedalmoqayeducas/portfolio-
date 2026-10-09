@@ -95,7 +95,7 @@ export function enqueue(sim: Sim, p: Player, s: Entity, defId: string): boolean 
   if (sim.options.unitCap > 0 && p.units >= sim.options.unitCap) { sim.emit({ k: 'msg', text: 'Unit cap reached', owner: p.id }); return false; }
   const count = d.batch ?? 1;
   let cost = sim.costOf(p, d) * count;
-  if (count > 1) cost = Math.round(cost * 0.85);
+  if (count > 1) cost = Math.round(cost * 0.9);
   if (p.credits < cost) { sim.emit({ k: 'msg', text: 'Not enough funds', owner: p.id }); return false; }
   if (d.roles.includes('worker')) {
     let c = 0;

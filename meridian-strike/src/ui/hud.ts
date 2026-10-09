@@ -23,7 +23,7 @@ interface Card {
   right?: () => void;
 }
 
-const GRID_KEYS = ['Q', 'W', 'E', 'R', 'A', 'S', 'D', 'F', 'Z', 'X', 'C', 'V'];
+const GRID_KEYS = ['Q', 'W', 'E', 'R', 'A', 'S', 'D', 'F', 'Z', 'X', 'C', 'V', 'B', 'N'];
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls = '', parent?: HTMLElement, html = ''): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
@@ -63,6 +63,7 @@ export class Hud {
   private mmWrap: HTMLDivElement;
   private powSig = '';
   private obsEl: HTMLDivElement | null = null;
+  private intro = false;
 
   constructor(private s: GameSession) {
     this.spectator = s.viewer < 0;
@@ -131,6 +132,15 @@ export class Hud {
   // ------------------------------------------------------------------ snapshot
   onSnapshot(snap: Snapshot): void {
     this.snap = snap;
+    if (!this.intro && !this.spectator && snap.n > 0) {
+      const dz = [...this.s.entities.views.values()].find((v) => v.owner === this.s.viewer && DEF_LIST[v.def].builds);
+      if (dz) {
+        this.intro = true;
+        this.s.selection.add(dz.id);
+        this.selectionChanged();
+        window.setTimeout(() => this.toast('Build with the selected Dozer. Select structures to train units. Esc = menu'), 800);
+      }
+    }
     this.me = this.s.viewer >= 0 ? snap.players[this.s.viewer] : null;
     this.updateTop(snap);
     const now = performance.now();
@@ -242,7 +252,7 @@ export class Hud {
       const queue = this.queueFor(sid);
       const inQ = queue ? queue.items.filter((q) => q.def === defId).reduce((n, q) => n + q.count, 0) : 0;
       let cost = up ? up.cost : this.costOf(d!);
-      if (d?.batch && d.batch > 1) cost = Math.round(cost * d.batch * 0.85);
+      if (d?.batch && d.batch > 1) cost = Math.round(cost * d.batch * 0.9);
       let locked = '';
       if (up) { if (me.upgrades.includes(up.id)) locked = 'Researched'; }
       else if (d) {
@@ -285,7 +295,7 @@ export class Hud {
         cards.push({ key: GRID_KEYS[i] ?? '', label: d.name, icon: getIcon(id, color), sub: '$' + fmt(cost), enabled: !locked && me.credits >= cost, locked: locked || undefined, tip, cb: () => this.s.input.setMode({ k: 'place', def: id }), active: this.s.input.mode.k === 'place' && (this.s.input.mode as { def: string }).def === id });
       });
       cards.push({ key: 'T', label: 'Repair', glyph: '🔧', enabled: true, tip: '<b>Repair structure</b> (T)', cb: () => this.s.input.setMode({ k: 'repair' }) });
-      cards.push({ key: 'S', label: 'Stop', glyph: '■', enabled: true, tip: '<b>Stop</b> (S)', cb: () => this.s.input.stop() });
+      cards.push({ key: 'G', label: 'Stop', glyph: '■', enabled: true, tip: '<b>Stop</b> (G)', cb: () => this.s.input.stop() });
     } else if (units.length) {
       const defs = units.map((v) => DEF_LIST[v.def]);
       const armed = defs.some((d) => d.weapons?.length);
@@ -475,6 +485,7 @@ export class Hud {
       <div class="mrow"><label>Effects</label><input id="pm-sf" type="range" min="0" max="1" step="0.05" value="${st.sfxVolume}"></div>
       <div class="mrow"><label>Voice lines</label><input id="pm-vo" type="checkbox" ${st.voice ? 'checked' : ''}></div>
       <div class="mrow"><label>Edge scrolling</label><input id="pm-ep" type="checkbox" ${st.edgePan ? 'checked' : ''}></div>
+      <div class="mrow"><button id="pm-replay" class="big">Save replay</button></div>
       <div class="mrow"><button id="pm-quit" class="big danger">Quit to menu</button></div></div>`;
     const q = (id: string) => m.querySelector(id) as HTMLInputElement;
     (q('#pm-q') as unknown as HTMLSelectElement).value = st.quality;
@@ -488,6 +499,7 @@ export class Hud {
     };
     m.querySelectorAll('input,select').forEach((n) => n.addEventListener('change', apply));
     q('#pm-resume').onclick = () => this.togglePause();
+    q('#pm-replay').onclick = () => { void this.s.saveReplay(); };
     q('#pm-quit').onclick = () => { this.s.onExit?.(); };
   }
 
@@ -501,7 +513,8 @@ export class Hud {
     for (const p of snap.players) rows += `<tr class="${snap.winner?.includes(p.id) ? 'win' : ''}"><td><i style="background:#${p.color.toString(16).padStart(6, '0')}"></i>${p.name}</td><td>${p.kills}</td><td>${p.losses}</td><td>${fmt(p.spent)}</td><td>${p.rank + 1}</td></tr>`;
     m.innerHTML = `<div class="mbox end ${won ? 'victory' : 'defeat'}"><h1>${me < 0 ? 'Match over' : won ? 'VICTORY' : 'DEFEAT'}</h1><div class="sub">${mmss(snap.time)}</div>
       <table><tr><th>Player</th><th>Kills</th><th>Losses</th><th>Spent</th><th>Rank</th></tr>${rows}</table>
-      <div class="mrow"><button id="en-watch" class="big">Keep watching</button><button id="en-quit" class="big">Main menu</button></div></div>`;
+      <div class="mrow"><button id="en-watch" class="big">Keep watching</button><button id="en-replay" class="big">Save replay</button><button id="en-quit" class="big">Main menu</button></div></div>`;
+    (m.querySelector('#en-replay') as HTMLElement).onclick = () => { void this.s.saveReplay(); };
     (m.querySelector('#en-watch') as HTMLElement).onclick = () => this.closeModal();
     (m.querySelector('#en-quit') as HTMLElement).onclick = () => this.s.onExit?.();
   }

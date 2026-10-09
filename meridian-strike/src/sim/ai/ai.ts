@@ -298,40 +298,46 @@ export class AIPlayer {
       else if (e.def.armor === 'heavy') enemyArmor++;
     }
     const w = this.pers.weights;
-    for (const s of own.structures) {
-      if (s.progress < 1 || !s.def.produces || s.def.slot === 'cc' || s.def.dropoff || s.queue.length >= (this.diff.expand >= 2 ? 3 : 2)) continue;
+    // most expensive production first, so money is saved for the units we actually want
+    const prods = own.structures
+      .filter((s) => s.progress >= 1 && s.def.produces && s.def.slot !== 'cc' && !s.def.dropoff && s.queue.length < (this.diff.expand >= 2 ? 3 : 2))
+      .sort((a, b) => (b.def.slot === 'factory' || b.def.slot === 'airfield' || b.def.slot === 'tech' ? 1 : 0) - (a.def.slot === 'factory' || a.def.slot === 'airfield' || a.def.slot === 'tech' ? 1 : 0));
+    let budget = p.credits - (own.army.length > 10 ? 150 : 0);
+    for (const s of prods) {
       // research first
-      for (const id of s.def.produces) {
+      for (const id of s.def.produces!) {
         const up = UPGRADES.get(id);
-        if (up && !p.upgrades.has(id) && !s.queue.length && p.credits > up.cost + 2500 && own.army.length > 8) { applyCommand(sim, p.id, { t: 'produce', structure: s.id, def: id }); break; }
+        if (up && !p.upgrades.has(id) && !s.queue.length && budget > up.cost + 2500 && own.army.length > 8) { applyCommand(sim, p.id, { t: 'produce', structure: s.id, def: id }); budget -= up.cost; break; }
       }
-      const options: { d: EntityDef; w: number }[] = [];
-      for (const id of s.def.produces) {
+      const options: { d: EntityDef; w: number; cost: number }[] = [];
+      for (const id of s.def.produces!) {
         const d = DEFS.get(id);
         if (!d || !sim.hasTech(p, d)) continue;
         if (d.builds || d.cap) continue;
         const cost = sim.costOf(p, d) * (d.batch ?? 1);
-        if (p.credits < cost) continue;
         let weight = 0;
         for (const r of d.roles) weight = Math.max(weight, w[r] ?? 0.2);
         if (d.roles.includes('aa')) weight *= enemyAir > 2 ? 3 : enemyAir > 0 ? 1.4 : 0.35;
         if (d.roles.includes('antitank')) weight *= enemyArmor > 3 ? 1.8 : 1;
-        if ((d.roles.includes('fighter')) && enemyAir > 2) weight *= 1.8;
+        if (d.roles.includes('fighter') && enemyAir > 2) weight *= 1.8;
         if (d.roles.includes('support') || d.roles.includes('special')) weight *= 0.5;
         if (d.roles.includes('decoy')) weight *= 0.4;
-        weight *= 600 / (300 + cost); // favour cheaper options slightly when poor
-        if (weight > 0) options.push({ d, w: weight });
+        if (weight > 0) options.push({ d, w: weight, cost });
       }
       if (!options.length) continue;
-      // keep a reserve for the next building
-      if (p.credits < 700 && own.army.length > 6) continue;
       let sum = 0;
       for (const o of options) sum += o.w;
       let r = sim.rng() * sum;
-      let pick = options[0].d;
-      for (const o of options) { r -= o.w; if (r <= 0) { pick = o.d; break; } }
-      applyCommand(sim, p.id, { t: 'produce', structure: s.id, def: pick.id });
-      // rally to staging
+      let pick = options[0];
+      for (const o of options) { r -= o.w; if (r <= 0) { pick = o; break; } }
+      if (budget >= pick.cost) {
+        applyCommand(sim, p.id, { t: 'produce', structure: s.id, def: pick.d.id });
+        budget -= pick.cost;
+      } else if (own.army.length < 8 && budget >= 150) {
+        // tiny army: take the cheapest useful unit instead of waiting
+        const cheap = options.filter((o) => o.cost <= budget).sort((a, b) => b.w - a.w)[0];
+        if (cheap) { applyCommand(sim, p.id, { t: 'produce', structure: s.id, def: cheap.d.id }); budget -= cheap.cost; }
+      } else budget = 0; // save up for the unit we want
       if (!s.rally) s.rally = [...this.staging] as [number, number];
     }
   }
@@ -355,6 +361,21 @@ export class AIPlayer {
         const air = own.air.filter((a) => !a.orders.length).map((a) => a.id);
         const tgt = enemies.find((e) => Math.hypot(e.x - this.lastAttack.x, e.z - this.lastAttack.z) < 90);
         if (air.length && tgt) applyCommand(sim, p.id, { t: 'attack', ids: air, target: tgt.id });
+      }
+    }
+
+    // ---- grab free oil derricks near home with an idle capture-capable squad
+    if (this.diff.expand >= 1 || this.pers === PERS.boomer) {
+      const [bx, bz] = p.spawn;
+      let best: Entity | null = null, bd = 430 * 430;
+      for (const d of sim.list) {
+        if (!d.alive || d.owner !== -1 || !d.def.income) continue;
+        const dd = (d.x - bx) ** 2 + (d.z - bz) ** 2;
+        if (dd < bd && !mobile.some((u) => u.orders.some((o) => o.k === 'capture' && o.target === d.id))) { bd = dd; best = d; }
+      }
+      if (best) {
+        const squad = mobile.find((u) => u.def.captures && !u.orders.length && !u.target && !this.attackWave.has(u.id));
+        if (squad) applyCommand(sim, p.id, { t: 'capture', ids: [squad.id], target: best.id });
       }
     }
 

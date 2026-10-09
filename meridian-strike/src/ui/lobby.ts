@@ -99,6 +99,7 @@ export class Lobby {
     this.el.innerHTML = `
       <div class="lobby">
         <div class="panel"><h2>SKIRMISH</h2>
+          <div class="row-btns" style="margin:0 0 10px"><button class="big" id="q-fill" style="font-size:14px;padding:6px 10px">Fill with AI</button><button class="big" id="q-ffa" style="font-size:14px;padding:6px 10px">Free-for-all</button><button class="big" id="q-two" style="font-size:14px;padding:6px 10px">Two sides</button><button class="big" id="q-pairs" style="font-size:14px;padding:6px 10px">Pairs</button></div>
           <table class="slots"><tr><th></th><th>Slot</th><th>Name</th><th>Army</th><th>General</th><th title="Same number = allies. 0 = alone">Team</th><th>AI level</th><th>AI style</th></tr>${rows}</table>
           <div class="helptext">Players with the same <b>team number</b> fight together. Leave it at <b>0</b> to play alone (free-for-all). Up to 10 players on the biggest map.</div>
         </div>
@@ -122,6 +123,10 @@ export class Lobby {
     this.drawPreview(q<HTMLCanvasElement>('#pv'));
     q<HTMLSelectElement>('#map').onchange = (e) => this.setMap(MAPS.find((x) => x.id === (e.target as HTMLSelectElement).value)!);
     q('#bk').onclick = () => this.onBack();
+    q('#q-fill').onclick = () => { this.slots.forEach((sl, i) => { if (i < this.map.maxPlayers && sl.type === 'closed') sl.type = 'ai'; }); this.render(); };
+    q('#q-ffa').onclick = () => { this.slots.forEach((sl) => (sl.team = 0)); this.render(); };
+    q('#q-two').onclick = () => { let k = 0; this.slots.slice(0, this.map.maxPlayers).forEach((sl) => { if (sl.type !== 'closed') sl.team = (k++ % 2) + 1; }); this.render(); };
+    q('#q-pairs').onclick = () => { let k = 0; this.slots.slice(0, this.map.maxPlayers).forEach((sl) => { if (sl.type !== 'closed') sl.team = Math.floor(k++ / 2) + 1; }); this.render(); };
     q('#go').onclick = () => this.start();
     const bind = (id: string, fn: (v: string, c: boolean) => void) => { const e = q<HTMLInputElement>(id); e.onchange = () => { fn(e.value, e.checked); }; };
     bind('#o-cr', (v) => (this.opts.startCredits = Number(v)));

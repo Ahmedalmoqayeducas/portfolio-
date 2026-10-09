@@ -43,7 +43,9 @@ function menuHtml(): string {
         <button id="m-skirmish">SKIRMISH</button>
         <button id="m-quick">QUICK MATCH</button>
         <button id="m-watch">WATCH AI BATTLE</button>
+        <button id="m-replay">WATCH REPLAY</button>
         <button id="m-controls">CONTROLS</button>
+        <input id="replay-file" type="file" accept=".json,application/json" style="display:none">
       </div>
       <div class="foot">Local build · original assets · procedural graphics &amp; audio</div>
     </div>`;
@@ -63,18 +65,29 @@ function showMenu(): void {
   (screen.querySelector('#m-quick') as HTMLElement).onclick = () => startGame(quickMatch(false));
   (screen.querySelector('#m-watch') as HTMLElement).onclick = () => startGame(quickMatch(true));
   (screen.querySelector('#m-controls') as HTMLElement).onclick = showControls;
+  const file = screen.querySelector('#replay-file') as HTMLInputElement;
+  (screen.querySelector('#m-replay') as HTMLElement).onclick = () => file.click();
+  file.onchange = async () => {
+    const f = file.files?.[0];
+    if (!f) return;
+    try {
+      const d = JSON.parse(await f.text());
+      if (d.game !== 'meridian-strike') throw new Error('not a replay file');
+      void startGame({ map: d.map, players: d.players, seed: d.seed, options: { ...d.options, viewer: -1, speed: 1 }, replay: d.log });
+    } catch (e) { alert('Cannot open replay: ' + (e as Error).message); }
+  };
 }
 
 function showControls(): void {
   screen.innerHTML = `<div class="menu-bg"></div><div class="menu-wrap"><div class="panel" style="max-width:760px;line-height:1.7">
     <h2 style="margin-top:0;color:var(--acc);letter-spacing:.2em">CONTROLS</h2>
-    <b>Camera</b> — WASD / arrows / screen edge · Q E or middle mouse: rotate · wheel: zoom · Shift: fast · Space: last alert · Alt+H: base<br>
+    <b>Camera</b> — arrow keys / screen edge: scroll · [ ] (or , .) or middle mouse: rotate · wheel: zoom · Shift: fast · Space: last alert · Alt+H: base<br>
     <b>Select</b> — click, drag box, double-click = same type on screen, Shift add/remove · Ctrl+1-9 assign group, 1-9 recall (twice = centre) · Ctrl+A all units<br>
     <b>Orders</b> — right-click: move / attack / capture / garrison / harvest / repair · A + click: attack-move · S stop · D scatter · F patrol · Q capture · W garrison · E deploy · Z X C V stances<br>
     <b>Build</b> — select a Dozer, pick a structure from the command card, click to place (Shift = keep placing)<br>
     <b>Production</b> — select a structure: Q W E R / A S D F / Z X C V on the command card · Shift = ×5 · right-click an item to cancel · Y = rally<br>
     <b>Powers</b> — unlock with command points (★) on the right panel, then click the target; superweapon buttons appear when charged<br>
-    <b>Misc</b> — Esc: menu / cancel · ~ : performance overlay · Delete: sell<br>
+    <b>Misc</b> — Esc: menu / cancel · ~ : performance overlay · F10: hide the interface (cinematic) · Delete: sell · Menu → Save replay<br>
     <div class="row-btns"><button class="big" id="c-back">Back</button></div></div></div>`;
   (screen.querySelector('#c-back') as HTMLElement).onclick = showMenu;
 }

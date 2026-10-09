@@ -11,7 +11,7 @@ const structs: EntityDef[] = [
   }),
   structure({
     id: 'iran_power', name: 'Power Plant', faction: F, roles: ['structure', 'economy'], slot: 'power', cost: 700, time: 18, hp: 1400,
-    vision: 50, footprint: [20, 20], power: 20, tech: ['iran_cc'],
+    vision: 50, footprint: [20, 20], power: 22, tech: ['iran_cc'],
     model: { tpl: 'reactor', style: 'iran', w: 20, d: 20 },
   }),
   structure({
@@ -92,7 +92,7 @@ const units: EntityDef[] = [
   }),
   unit({
     id: 'iran_truck', name: 'Supply Truck', faction: F, roles: ['truck'], cost: 450, time: 11, hp: 400, armor: 'light', radius: 3.2, vision: 50,
-    producedBy: 'iran_supply', speed: 9.5, move: 'wheel', cap: 300, model: { tpl: 'truck', style: 'iran' },
+    producedBy: 'iran_supply', speed: 9.5, move: 'wheel', cap: 320, model: { tpl: 'truck', style: 'iran' },
   }),
   unit({
     id: 'iran_basij', name: 'Basij Militia', faction: F, roles: ['infantry', 'militia'], cost: 80, time: 4, hp: 120, armor: 'infantry', radius: 1.8, vision: 55,
@@ -125,7 +125,7 @@ const units: EntityDef[] = [
     model: { tpl: 'wheeled', style: 'iran', len: 7, wid: 2.9, wheels: 8, turret: 'cannon' },
   }),
   unit({
-    id: 'iran_t72', name: 'T-72S Upgrade', faction: F, roles: ['tank'], cost: 650, time: 12, hp: 820, armor: 'heavy', radius: 4.4, vision: 75,
+    id: 'iran_t72', name: 'T-72S Upgrade', faction: F, roles: ['tank'], cost: 650, time: 12, hp: 880, armor: 'heavy', radius: 4.4, vision: 75,
     producedBy: 'iran_workshop', speed: 5.2, move: 'track', turret: 2.0,
     weapons: [
       weapon({ id: 't72_gun', name: '125mm Gun', damage: 100, dtype: 'ap', range: 50, reload: 3.2, speed: 200, targets: ['ground'], vfx: 'cannon', aoe: 2.4, mount: [0, 3, 5], spread: 2.5 }),
@@ -143,7 +143,7 @@ const units: EntityDef[] = [
     model: { tpl: 'tank', style: 'iran', len: 9.4, wid: 3.6, turretLen: 3.4, gun: 5.2, era: true },
   }),
   unit({
-    id: 'iran_zulfiqar', name: 'Zulfiqar-3', faction: F, roles: ['tank'], cost: 1050, time: 17, hp: 1030, armor: 'heavy', radius: 4.6, vision: 78, aps: 20, tech: ['iran_radar'],
+    id: 'iran_zulfiqar', name: 'Zulfiqar-3', faction: F, roles: ['tank'], cost: 1050, time: 17, hp: 1100, armor: 'heavy', radius: 4.6, vision: 78, aps: 20, tech: ['iran_radar'],
     producedBy: 'iran_workshop', speed: 5.1, move: 'track', turret: 2.2,
     weapons: [
       weapon({ id: 'zulf_gun', name: '125mm Gun', damage: 124, dtype: 'ap', range: 55, reload: 2.8, speed: 215, targets: ['ground'], vfx: 'cannon', aoe: 2.5, mount: [0, 3, 5], spread: 2.2 }),

@@ -203,6 +203,10 @@ export interface EntityDef {
   scoot?: boolean;
   /** swarm bonus: +armour/+dmg when this many allies are nearby */
   swarm?: number;
+  /** Battle Network (USA): +damage / +rate of fire while within range of a friendly network node */
+  network?: boolean;
+  /** this entity is a network node: radius in metres */
+  netNode?: number;
   /** is an air unit that needs an airfield to rearm */
   rearm?: boolean;
   /** batch size when produced (China mass production, Shahed swarms) */
@@ -388,12 +392,16 @@ export interface GameOptions {
   viewer: number;
 }
 
+export interface CommandLogEntry { t: number; pid: number; cmd: Command }
+
 export interface InitMsg {
   map: string;
   heights: Float32Array;
   seed: number;
   players: PlayerSetup[];
   options: GameOptions;
+  /** replay playback: commands to feed at their recorded ticks */
+  replay?: CommandLogEntry[];
 }
 
 export const DEFAULT_OPTIONS: GameOptions = {

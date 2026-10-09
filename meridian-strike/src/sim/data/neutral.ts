@@ -4,7 +4,7 @@ import { structure } from './helpers';
 export const neutralDefs: EntityDef[] = [
   structure({
     id: 'n_depot', name: 'Supply Depot', faction: 'neutral', roles: ['resource', 'structure'], cost: 0, time: 0, hp: 1e9, vision: 0,
-    footprint: [12, 12], prop: true, supply: 12000, model: { tpl: 'supplypile', w: 12, d: 12 },
+    footprint: [12, 12], prop: true, supply: 22000, model: { tpl: 'supplypile', w: 12, d: 12 },
   }),
   structure({
     id: 'n_derrick', name: 'Oil Derrick', faction: 'neutral', roles: ['structure', 'economy'], cost: 0, time: 0, hp: 900, vision: 40,

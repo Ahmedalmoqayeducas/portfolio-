@@ -119,6 +119,7 @@ export class Entity {
   ttl = 0;
   /** swarm-buff active (China) */
   swarmed = false;
+  netted = false;
   /** next tick at which the entity may re-scan for swarm / heal etc. */
   nextScan = 0;
 

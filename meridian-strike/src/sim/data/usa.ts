@@ -7,7 +7,7 @@ const F = 'usa' as const;
 const structs: EntityDef[] = [
   structure({
     id: 'usa_cc', name: 'Command Center', faction: F, roles: ['structure', 'production'], slot: 'cc', cost: 2000, time: 45, hp: 4200,
-    vision: 90, footprint: [34, 34], power: 0, produces: ['usa_dozer'], unique: false, tech: [],
+    vision: 90, footprint: [34, 34], power: 0, produces: ['usa_dozer'], unique: false, tech: [], netNode: 170,
     model: { tpl: 'command', style: 'usa', w: 34, d: 34 },
   }),
   structure({
@@ -39,7 +39,7 @@ const structs: EntityDef[] = [
   }),
   structure({
     id: 'usa_radar', name: 'Network Node', faction: F, roles: ['structure', 'tech'], slot: 'radar', cost: 1000, time: 24, hp: 1200,
-    vision: 160, footprint: [20, 20], power: -4, radar: true, tech: ['usa_supply'], detector: 70,
+    vision: 160, footprint: [20, 20], power: -4, radar: true, tech: ['usa_supply'], detector: 70, netNode: 280,
     model: { tpl: 'radar', style: 'usa', w: 20, d: 20 },
   }),
   structure({
@@ -111,7 +111,7 @@ const units: EntityDef[] = [
   }),
   unit({
     id: 'usa_ranger', name: 'Ranger Recon', faction: F, roles: ['infantry', 'scout'], cost: 350, time: 10, hp: 130, armor: 'infantry', radius: 1.6, vision: 110,
-    producedBy: 'usa_barracks', speed: 4.8, move: 'foot', canGarrison: true, stealth: { detect: 16, reveal: 3 }, detector: 14,
+    producedBy: 'usa_barracks', speed: 4.8, move: 'foot', canGarrison: true, stealth: { detect: 16, reveal: 3 }, detector: 14, netNode: 140,
     weapons: [weapon({ id: 'scar', name: 'Suppressed SCAR', damage: 13, dtype: 'smallarms', range: 28, reload: 0.5, speed: 0, targets: ['ground'], vfx: 'bullet', mount: [0, 1.3, 0.8], fixed: true })],
     model: { tpl: 'infantry', style: 'usa', n: 2, kit: 'rifle', dark: true },
   }),
@@ -123,19 +123,19 @@ const units: EntityDef[] = [
   }),
   unit({
     id: 'usa_jltv', name: 'JLTV Scout', faction: F, roles: ['scout'], cost: 450, time: 10, hp: 380, armor: 'light', radius: 3, vision: 110,
-    producedBy: 'usa_factory', speed: 10.5, move: 'wheel', turret: 4, detector: 20,
+    producedBy: 'usa_factory', speed: 10.5, move: 'wheel', turret: 4, detector: 20, netNode: 150, network: true,
     weapons: [weapon({ id: 'm240', name: 'M240 MG', damage: 7, dtype: 'smallarms', range: 32, reload: 0.25, speed: 0, targets: ['ground', 'air'], vfx: 'bullet', mount: [0, 2.6, 1.2] })],
     model: { tpl: 'wheeled', style: 'usa', len: 5.6, wid: 2.5, wheels: 4, turret: 'mg' },
   }),
   unit({
-    id: 'usa_stryker', name: 'Stryker Dragoon', faction: F, roles: ['ifv'], cost: 700, time: 14, hp: 800, armor: 'light', radius: 3.6, vision: 80,
-    producedBy: 'usa_factory', speed: 8.5, move: 'wheel', turret: 3,
+    id: 'usa_stryker', name: 'Stryker Dragoon', faction: F, roles: ['ifv'], cost: 650, time: 14, hp: 800, armor: 'light', radius: 3.6, vision: 80,
+    network: true, producedBy: 'usa_factory', speed: 8.5, move: 'wheel', turret: 3,
     weapons: [weapon({ id: 'mk44', name: '30mm Bushmaster', damage: 24, dtype: 'ap', range: 40, reload: 0.7, speed: 0, targets: ['ground', 'air'], vfx: 'cannon', mount: [0, 3, 2.4] })],
     model: { tpl: 'wheeled', style: 'usa', len: 7, wid: 2.9, wheels: 8, turret: 'cannon' },
   }),
   unit({
-    id: 'usa_abrams', name: 'M1A2 Abrams', faction: F, roles: ['tank'], cost: 1200, time: 18, hp: 1150, armor: 'heavy', radius: 4.6, vision: 80,
-    producedBy: 'usa_factory', speed: 5.4, move: 'track', turret: 2.2, aps: 12,
+    id: 'usa_abrams', name: 'M1A2 Abrams', faction: F, roles: ['tank'], cost: 1100, time: 18, hp: 1150, armor: 'heavy', radius: 4.6, vision: 80,
+    network: true, producedBy: 'usa_factory', speed: 5.4, move: 'track', turret: 2.2, aps: 12,
     weapons: [
       weapon({ id: 'm256', name: '120mm Smoothbore', damage: 135, dtype: 'ap', range: 60, reload: 2.7, speed: 220, targets: ['ground'], vfx: 'cannon', aoe: 2.5, mount: [0, 3, 5], spread: 2 }),
       weapon({ id: 'coax', name: 'Coaxial MG', damage: 6, dtype: 'smallarms', range: 32, reload: 0.2, speed: 0, targets: ['ground'], vfx: 'bullet', mount: [0.5, 3, 3] }),
@@ -143,8 +143,8 @@ const units: EntityDef[] = [
     model: { tpl: 'tank', style: 'usa', len: 9.4, wid: 3.7, turretLen: 3.6, gun: 5.4, era: true },
   }),
   unit({
-    id: 'usa_bradley', name: 'Bradley IFV', faction: F, roles: ['ifv', 'antitank'], cost: 900, time: 16, hp: 900, armor: 'heavy', radius: 4, vision: 80,
-    producedBy: 'usa_factory', speed: 6.5, move: 'track', turret: 2.6, tech: ['usa_supply'],
+    id: 'usa_bradley', name: 'Bradley IFV', faction: F, roles: ['ifv', 'antitank'], cost: 850, time: 16, hp: 900, armor: 'heavy', radius: 4, vision: 80,
+    network: true, producedBy: 'usa_factory', speed: 6.5, move: 'track', turret: 2.6, tech: ['usa_supply'],
     weapons: [
       weapon({ id: 'm242', name: '25mm Bushmaster', damage: 12, dtype: 'ap', range: 42, reload: 0.35, speed: 0, targets: ['ground', 'air'], vfx: 'cannon', mount: [0, 3, 3] }),
       weapon({ id: 'tow', name: 'TOW-2B', damage: 100, dtype: 'missile', range: 56, minRange: 10, reload: 6, speed: 90, targets: ['ground'], guided: true, vfx: 'missile', mount: [1.4, 3.2, 1], aoe: 2.5 }),
@@ -153,31 +153,31 @@ const units: EntityDef[] = [
   }),
   unit({
     id: 'usa_paladin', name: 'M109 Paladin', faction: F, roles: ['artillery'], cost: 1000, time: 18, hp: 520, armor: 'light', radius: 4.2, vision: 70,
-    producedBy: 'usa_factory', speed: 4.2, move: 'track', turret: 0.7, tech: ['usa_supply'],
+    network: true, producedBy: 'usa_factory', speed: 4.2, move: 'track', turret: 0.7, tech: ['usa_supply'],
     weapons: [weapon({ id: 'm284', name: '155mm Howitzer', damage: 170, dtype: 'artillery', range: 150, minRange: 30, reload: 6, speed: 110, arc: 0.45, aoe: 10, targets: ['ground'], vfx: 'shell', mount: [0, 3.2, 5], spread: 8 })],
     model: { tpl: 'artillery', style: 'usa', len: 9, wid: 3.4, gun: 6.5 },
   }),
   unit({
     id: 'usa_himars', name: 'M142 HIMARS', faction: F, roles: ['mlrs', 'artillery'], cost: 1400, time: 22, hp: 480, armor: 'light', radius: 4, vision: 70,
-    producedBy: 'usa_factory', speed: 6.2, move: 'wheel', tech: ['usa_radar'],
+    network: true, producedBy: 'usa_factory', speed: 6.2, move: 'wheel', tech: ['usa_radar'],
     weapons: [weapon({ id: 'gmlrs', name: 'GMLRS', damage: 65, dtype: 'artillery', range: 190, minRange: 40, reload: 20, salvo: 6, salvoGap: 0.35, speed: 130, arc: 0.55, aoe: 8, targets: ['ground'], vfx: 'rocket', mount: [0, 3.2, -1], spread: 9, fixed: true })],
     model: { tpl: 'mlrs', style: 'usa', len: 8, wid: 2.9, tubes: 6 },
   }),
   unit({
     id: 'usa_patriot_l', name: 'Patriot Launcher', faction: F, roles: ['aa'], cost: 1100, time: 18, hp: 480, armor: 'light', radius: 4, vision: 80,
-    producedBy: 'usa_factory', speed: 5, move: 'wheel', tech: ['usa_radar'],
+    network: true, producedBy: 'usa_factory', speed: 5, move: 'wheel', tech: ['usa_radar'],
     weapons: [weapon({ id: 'pac3l', name: 'PAC-3 MSE', damage: 130, dtype: 'aa', range: 150, reload: 5, salvo: 2, salvoGap: 0.5, speed: 150, targets: ['air'], guided: true, vfx: 'missile', mount: [0, 4, 0], fixed: true })],
     model: { tpl: 'sam', style: 'usa', len: 9, wid: 3, tubes: 4, mobile: true },
   }),
   unit({
     id: 'usa_reaper', name: 'MQ-9 Reaper', faction: F, roles: ['drone', 'heli'], cost: 1100, time: 20, hp: 260, armor: 'drone', radius: 3, vision: 130,
-    producedBy: 'usa_airfield', speed: 24, move: 'drone', layer: 'air', fly: 46, rearm: true, tech: ['usa_radar'], detector: 40,
+    producedBy: 'usa_airfield', speed: 24, move: 'drone', layer: 'air', fly: 46, rearm: true, tech: ['usa_radar'], detector: 40, netNode: 240, network: true,
     weapons: [weapon({ id: 'hellfire', name: 'AGM-114 Hellfire', damage: 90, dtype: 'missile', range: 62, reload: 4, salvo: 2, salvoGap: 0.4, speed: 100, targets: ['ground'], guided: true, vfx: 'missile', ammo: 8, aoe: 3, mount: [0, -1, 2], fixed: true })],
     model: { tpl: 'drone', style: 'usa', span: 20, len: 11 },
   }),
   unit({
     id: 'usa_apache', name: 'AH-64E Apache', faction: F, roles: ['heli'], cost: 1500, time: 22, hp: 750, armor: 'air', radius: 4, vision: 100,
-    producedBy: 'usa_airfield', speed: 18, move: 'heli', layer: 'air', fly: 16, rearm: true, accel: 24,
+    network: true, producedBy: 'usa_airfield', speed: 18, move: 'heli', layer: 'air', fly: 16, rearm: true, accel: 24,
     weapons: [
       weapon({ id: 'm230', name: '30mm Chain Gun', damage: 14, dtype: 'ap', range: 55, reload: 0.2, speed: 0, targets: ['ground', 'air'], vfx: 'cannon', ammo: 80, mount: [0, -1, 4], fixed: true }),
       weapon({ id: 'hellfire_a', name: 'Hellfire', damage: 100, dtype: 'missile', range: 66, reload: 5, salvo: 2, salvoGap: 0.4, speed: 100, targets: ['ground'], guided: true, vfx: 'missile', ammo: 8, aoe: 3, mount: [1.5, 0, 2], fixed: true }),
@@ -185,8 +185,8 @@ const units: EntityDef[] = [
     model: { tpl: 'heli', style: 'usa', len: 15, rotor: 14, attack: true },
   }),
   unit({
-    id: 'usa_f35', name: 'F-35A Lightning II', faction: F, roles: ['fighter', 'bomber'], cost: 2200, time: 28, hp: 650, armor: 'air', radius: 5, vision: 120,
-    producedBy: 'usa_airfield', speed: 62, move: 'plane', layer: 'air', fly: 70, rearm: true, stealth: { detect: 40, reveal: 2, always: true }, tech: ['usa_radar'],
+    id: 'usa_f35', name: 'F-35A Lightning II', faction: F, roles: ['fighter', 'bomber'], cost: 2000, time: 28, hp: 650, armor: 'air', radius: 5, vision: 120,
+    network: true, producedBy: 'usa_airfield', speed: 62, move: 'plane', layer: 'air', fly: 70, rearm: true, stealth: { detect: 40, reveal: 2, always: true }, tech: ['usa_radar'],
     weapons: [
       weapon({ id: 'gbu', name: 'GBU-39 SDB', damage: 230, dtype: 'explosive', range: 60, reload: 1.2, salvo: 2, salvoGap: 0.25, speed: 0, targets: ['ground'], vfx: 'bomb', ammo: 6, aoe: 14, fixed: true, mount: [0, -1, 0] }),
       weapon({ id: 'aim120', name: 'AIM-120', damage: 140, dtype: 'aa', range: 130, reload: 4, speed: 240, targets: ['air'], guided: true, vfx: 'missile', ammo: 4, fixed: true, mount: [1, -1, 2] }),
@@ -195,7 +195,7 @@ const units: EntityDef[] = [
   }),
   unit({
     id: 'usa_b21', name: 'B-21 Raider', faction: F, roles: ['bomber'], cost: 3000, time: 36, hp: 950, armor: 'air', radius: 8, vision: 120,
-    producedBy: 'usa_airfield', speed: 48, move: 'plane', layer: 'air', fly: 90, rearm: true, stealth: { detect: 30, reveal: 3, always: true }, tech: ['usa_strategic'],
+    network: true, producedBy: 'usa_airfield', speed: 48, move: 'plane', layer: 'air', fly: 90, rearm: true, stealth: { detect: 30, reveal: 3, always: true }, tech: ['usa_strategic'],
     weapons: [weapon({ id: 'gbu57', name: 'GBU-31 JDAM Stick', damage: 320, dtype: 'explosive', range: 80, reload: 0.5, salvo: 5, salvoGap: 0.28, speed: 0, targets: ['ground'], vfx: 'bomb', ammo: 10, aoe: 19, fixed: true, structOnly: true, mount: [0, -1, 0] })],
     model: { tpl: 'bomber', style: 'usa', len: 21, span: 40 },
   }),
