@@ -1,0 +1,107 @@
+<!doctype html><meta charset="utf-8"><title>audio lab</title>
+<body style="background:#111;color:#ddd;font:12px monospace">audio lab<script type="module">
+import { makeNoise, makeImpulse } from '/src/audio/dsp.ts';
+import * as R from '/src/audio/recipes.ts';
+import * as L from '/src/audio/loops.ts';
+
+function fft(re, im) {
+  const n = re.length;
+  for (let i = 1, j = 0; i < n; i++) { let bit = n >> 1; for (; j & bit; bit >>= 1) j ^= bit; j ^= bit; if (i < j) { [re[i], re[j]] = [re[j], re[i]]; [im[i], im[j]] = [im[j], im[i]]; } }
+  for (let len = 2; len <= n; len <<= 1) {
+    const ang = -2 * Math.PI / len, wr = Math.cos(ang), wi = Math.sin(ang);
+    for (let i = 0; i < n; i += len) { let cr = 1, ci = 0; for (let k = 0; k < len / 2; k++) {
+      const ur = re[i + k], ui = im[i + k], vr = re[i + k + len / 2] * cr - im[i + k + len / 2] * ci, vi = re[i + k + len / 2] * ci + im[i + k + len / 2] * cr;
+      re[i + k] = ur + vr; im[i + k] = ui + vi; re[i + k + len / 2] = ur - vr; im[i + k + len / 2] = ui - vi;
+      const t = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = t; } }
+  }
+}
+
+const SR = 44100;
+const RECIPES = {
+  rifle: (r, o, t) => R.rifle(r, o, t, 1, 0),
+  rifle_iran: (r, o, t) => R.rifle(r, o, t, 0.85, 0.2),
+  mg50: (r, o, t) => R.rifle(r, o, t, 0.9, 1),
+  autocannon: (r, o, t) => R.autocannon(r, o, t, 1),
+  tankgun: (r, o, t) => R.tankGun(r, o, t, 1, 1),
+  howitzer: (r, o, t) => R.tankGun(r, o, t, 0.75, 1.4),
+  rocket: (r, o, t) => R.rocketLaunch(r, o, t, 1),
+  missile: (r, o, t) => R.missileLaunch(r, o, t),
+  whistle: (r, o, t) => R.whistle(r, o, t, 1.1),
+  boom_small: (r, o, t) => R.explosion(r, o, t, 1),
+  boom_big: (r, o, t) => R.explosion(r, o, t, 4),
+  boom_struct: (r, o, t) => R.explosion(r, o, t, 5, true),
+  impact_metal: (r, o, t) => R.impactMetal(r, o, t),
+  impact_dirt: (r, o, t) => R.impactDirt(r, o, t),
+  flare: (r, o, t) => R.flareHiss(r, o, t),
+  step: (r, o, t) => R.footstep(r, o, t),
+  flame: (r, o, t) => R.flameThrower(r, o, t),
+  zap: (r, o, t) => R.zap(r, o, t, 0),
+  zap_big: (r, o, t) => R.zap(r, o, t, 1),
+  nuke: (r, o, t) => R.nukeBlast(r, o, t),
+  squelch: (r, o, t) => R.squelch(r, o, t),
+};
+const LOOPS = L.LOOP_KINDS || {};
+
+async function renderOne(name, seconds) {
+  const ctx = new OfflineAudioContext(1, Math.floor(SR * seconds), SR);
+  const rig = { ctx, noise: makeNoise(ctx) };
+  const master = ctx.createGain(); master.gain.value = 1; master.connect(ctx.destination);
+  if (RECIPES[name]) RECIPES[name](rig, master, 0.02);
+  else if (LOOPS[name]) LOOPS[name](rig, master, seconds);
+  const buf = await ctx.startRendering();
+  return buf.getChannelData(0);
+}
+
+function analyse(d) {
+  let peak = 0, sum = 0;
+  for (const v of d) { peak = Math.max(peak, Math.abs(v)); sum += v * v; }
+  const rms = Math.sqrt(sum / d.length);
+  // envelope in 10 ms windows
+  const w = Math.floor(SR * 0.01); const env = [];
+  for (let i = 0; i + w <= d.length; i += w) { let s = 0; for (let k = 0; k < w; k++) s += d[i + k] * d[i + k]; env.push(Math.sqrt(s / w)); }
+  const emax = Math.max(...env, 1e-9);
+  let last = 0; env.forEach((e, i) => { if (20 * Math.log10(e / emax + 1e-12) > -40) last = i; });
+  // spectrum
+  const N = 16384; const re = new Float32Array(N), im = new Float32Array(N);
+  const start = Math.max(0, env.indexOf(emax) * w - 512);
+  for (let i = 0; i < N; i++) re[i] = (d[start + i] || 0) * (0.5 - 0.5 * Math.cos(2 * Math.PI * i / N));
+  fft(re, im);
+  const bands = [[20, 120], [120, 400], [400, 1500], [1500, 5000], [5000, 16000]]; const be = bands.map(() => 0); let cn = 0, cd = 0;
+  for (let k = 1; k < N / 2; k++) { const f = k * SR / N; const p = re[k] * re[k] + im[k] * im[k]; bands.forEach(([a, b], i) => { if (f >= a && f < b) be[i] += p; }); cn += f * p; cd += p; }
+  const tot = be.reduce((a, b) => a + b, 1e-12);
+  return { peakDb: +(20 * Math.log10(peak + 1e-9)).toFixed(1), rmsDb: +(20 * Math.log10(rms + 1e-9)).toFixed(1), decayMs: (last + 1) * 10, centroid: Math.round(cn / (cd || 1)),
+    bandsPct: be.map((b) => Math.round(100 * b / tot)), nan: d.some((v) => !Number.isFinite(v)), clipped: peak > 1 };
+}
+
+function spectrogram(d, seconds) {
+  const W = 640, H = 220, c = document.createElement('canvas'); c.width = W; c.height = H + 60; const g = c.getContext('2d');
+  g.fillStyle = '#000'; g.fillRect(0, 0, W, H + 60);
+  const N = 1024, hop = Math.max(1, Math.floor(d.length / W));
+  const img = g.createImageData(W, H);
+  for (let x = 0; x < W; x++) {
+    const re = new Float32Array(N), im = new Float32Array(N);
+    for (let i = 0; i < N; i++) re[i] = (d[x * hop + i] || 0) * (0.5 - 0.5 * Math.cos(2 * Math.PI * i / N));
+    fft(re, im);
+    for (let y = 0; y < H; y++) {
+      const f = 30 * Math.pow(18000 / 30, 1 - y / H); const k = Math.min(N / 2 - 1, Math.floor(f * N / SR));
+      const mag = Math.sqrt(re[k] * re[k] + im[k] * im[k]) / (N / 4);
+      const db = 20 * Math.log10(mag + 1e-7); const v = Math.max(0, Math.min(1, (db + 90) / 70));
+      const o = (y * W + x) * 4; img.data[o] = 255 * Math.min(1, v * 2); img.data[o + 1] = 255 * Math.max(0, v * 2 - 0.7); img.data[o + 2] = 255 * (1 - v) * 0.5 * v * 2; img.data[o + 3] = 255;
+    }
+  }
+  g.putImageData(img, 0, 0);
+  // waveform
+  g.strokeStyle = '#6cf'; g.beginPath(); const mid = H + 30;
+  for (let x = 0; x < W; x++) { let mx = 0; for (let k = 0; k < hop; k++) mx = Math.max(mx, Math.abs(d[x * hop + k] || 0)); g.moveTo(x, mid - mx * 28); g.lineTo(x, mid + mx * 28); }
+  g.stroke();
+  g.fillStyle = '#9ab'; g.font = '10px monospace'; for (let s = 0; s <= seconds; s += seconds > 3 ? 1 : 0.5) { const x = s / seconds * W; g.fillText(s + 's', x + 2, H + 56); g.fillRect(x, H, 1, 4); }
+  for (const f of [100, 1000, 10000]) { const y = H * (1 - Math.log(f / 30) / Math.log(18000 / 30)); g.fillText(f >= 1000 ? f / 1000 + 'k' : String(f), 2, y - 2); g.fillRect(0, y, 6, 1); }
+  return c.toDataURL('image/png');
+}
+
+window.lab = {
+  names: () => [...Object.keys(RECIPES), ...Object.keys(LOOPS)],
+  async run(name, seconds) { const d = await renderOne(name, seconds); return { name, stats: analyse(d), png: spectrogram(d, seconds) }; },
+};
+window.labReady = true;
+</script>

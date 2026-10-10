@@ -296,7 +296,7 @@ export const F_HARVESTING = 4096;
 export const F_DAMAGED = 8192;
 
 export type SimEvent =
-  | { k: 'shot'; vfx: ProjVfx; x: number; y: number; z: number; tx: number; ty: number; tz: number; owner: number; big?: boolean; p?: boolean }
+  | { k: 'shot'; vfx: ProjVfx; x: number; y: number; z: number; tx: number; ty: number; tz: number; owner: number; big?: boolean; p?: boolean; /** shooter def index */ src?: number; dmg?: number }
   | { k: 'boom'; x: number; y: number; z: number; size: number; kind: 'gen' | 'big' | 'air' | 'nuke' | 'emp' | 'fire' | 'ground' | 'cyber' }
   | { k: 'death'; id: number; def: string; x: number; y: number; z: number; owner: number; heading: number; structure: boolean }
   | { k: 'alert'; type: 'attack' | 'built' | 'ready' | 'lost' | 'capture' | 'super' | 'power' | 'low'; x: number; z: number; owner: number; text?: string }

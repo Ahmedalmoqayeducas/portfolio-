@@ -152,6 +152,23 @@ export class GameSession {
   command(cmd: Command): void {
     if (this.viewer < 0 || this.ended) return;
     this.host.command(this.viewer, cmd);
+    this.acknowledge(cmd);
+  }
+
+  /** the first unit of the group answers over the radio */
+  private acknowledge(cmd: Command): void {
+    const ids = (cmd as { ids?: number[] }).ids;
+    if (!ids?.length) return;
+    let kind: string;
+    switch (cmd.t) {
+      case 'move': kind = cmd.attack ? 'attack' : 'move'; break;
+      case 'attack': case 'cyber': kind = 'attack'; break;
+      case 'capture': case 'garrison': case 'repair': case 'harvest': case 'build': kind = cmd.t; break;
+      case 'patrol': kind = 'move'; break;
+      default: return;
+    }
+    const v = this.entities.views.get(ids[0]);
+    if (v) this.audio.ack(kind, v.def);
   }
 
   async saveReplay(): Promise<void> {

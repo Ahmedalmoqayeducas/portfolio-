@@ -3,6 +3,7 @@ import { RANK_XP } from '../sim';
 import type { Entity } from '../entity';
 import { DAMAGE_MATRIX, DT, DamageType, ProjVfx, TICK_RATE, WeaponDef } from '../types';
 import { angDiff, faceTarget } from './orders';
+import { DEF_INDEX } from '../defs';
 
 export const VFX_NAMES: ProjVfx[] = ['bullet', 'cannon', 'missile', 'rocket', 'shell', 'bomb', 'flame', 'cyber', 'emp', 'swarm'];
 const VFX_INDEX = new Map(VFX_NAMES.map((n, i) => [n, i]));
@@ -135,7 +136,7 @@ export function fireWeapon(sim: Sim, e: Entity, wi: number, t: Entity, sx?: numb
 
   if (w.suicide) {
     // loitering munition: detonates on the target
-    sim.emitAt({ k: 'shot', vfx: w.vfx, x: mx, y: my, z: mz, tx: ax, ty: ay, tz: az, owner: e.owner }, mx, mz);
+    sim.emitAt({ k: 'shot', vfx: w.vfx, x: mx, y: my, z: mz, tx: ax, ty: ay, tz: az, owner: e.owner, src: DEF_INDEX.get(d.id), dmg }, mx, mz);
     explode(sim, t.x, t.y, t.z, w.aoe ?? 6, dmg, w.dtype, e.owner, e, true, true);
     sim.emitAt({ k: 'boom', x: t.x, y: t.y + 1, z: t.z, size: Math.max(1.6, (w.aoe ?? 6) * 0.35), kind: tAir ? 'air' : 'gen' }, t.x, t.z);
     sim.remove(e);
@@ -149,7 +150,7 @@ export function fireWeapon(sim: Sim, e: Entity, wi: number, t: Entity, sx?: numb
     pHit = 1 - (1 - pHit) * e.aim;
     if (t.def.kind === 'structure') pHit = 1;
     const hit = sim.rng() < pHit;
-    sim.emitAt({ k: 'shot', vfx: w.vfx, x: mx, y: my, z: mz, tx: hit ? t.x : ax + (sim.rng() - 0.5) * 6, ty: hit ? ay : ay + (sim.rng() - 0.5) * 3, tz: hit ? t.z : az + (sim.rng() - 0.5) * 6, owner: e.owner }, mx, mz);
+    sim.emitAt({ k: 'shot', vfx: w.vfx, x: mx, y: my, z: mz, tx: hit ? t.x : ax + (sim.rng() - 0.5) * 6, ty: hit ? ay : ay + (sim.rng() - 0.5) * 3, tz: hit ? t.z : az + (sim.rng() - 0.5) * 6, owner: e.owner, src: DEF_INDEX.get(d.id), dmg }, mx, mz);
     if (hit) {
       if (w.stunTime) stun(sim, t, w.stunTime, w.dtype);
       else if (w.aoe) explode(sim, t.x, t.y, t.z, w.aoe, dmg, w.dtype, e.owner, e, tAir, !tAir);
@@ -170,7 +171,7 @@ export function fireWeapon(sim: Sim, e: Entity, wi: number, t: Entity, sx?: numb
   };
   if (w.guided && t.def.kind !== 'structure') p.jam = jammedAt(sim, t);
   sim.projectiles.push(p);
-  sim.emitAt({ k: 'shot', vfx: w.vfx, x: mx, y: my, z: mz, tx: ax, ty: ay, tz: az, owner: e.owner, big: dmg > 100, p: true }, mx, mz);
+  sim.emitAt({ k: 'shot', vfx: w.vfx, x: mx, y: my, z: mz, tx: ax, ty: ay, tz: az, owner: e.owner, big: dmg > 100, p: true, src: DEF_INDEX.get(d.id), dmg }, mx, mz);
 }
 
 function startCooldown(e: Entity, wi: number): void {

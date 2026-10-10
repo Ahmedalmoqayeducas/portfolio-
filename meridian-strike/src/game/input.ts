@@ -151,7 +151,11 @@ export class InputController {
     if (!add) sel.clear();
     for (const id of ids) sel.add(id);
     this.s.hud?.selectionChanged();
-    if (ids.length) this.s.audio.ui('select');
+    if (ids.length) {
+      this.s.audio.ui('select');
+      const v = this.s.entities.views.get(ids[0]);
+      if (v && v.owner === this.viewer) this.s.audio.ack('select', v.def);
+    }
   }
 
   setMode(m: Mode): void {
