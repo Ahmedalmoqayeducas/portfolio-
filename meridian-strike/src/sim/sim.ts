@@ -17,6 +17,7 @@ import { updateEconomy } from './systems/economy';
 import { stepAir } from './systems/air';
 import { stepPowers, PowerState } from './systems/powers';
 import { AIPlayer } from './ai/ai';
+import { skillClass, skillsAt } from './skills';
 
 export interface Projectile {
   id: number;
@@ -238,6 +239,9 @@ export class Sim {
       }
     }
     const v = e.vet;
+    const sk = skillsAt(skillClass(d), v);
+    spd *= sk.speed; rng *= sk.range;
+    e.evade = sk.evade; e.flak = sk.flak; e.aim = sk.aim; e.armorMul = sk.armor; e.regen = sk.regen;
     hpMul *= [1, 1.15, 1.3, 1.5][v];
     dmgMul *= [1, 1.1, 1.25, 1.4][v];
     rof *= [1, 1, 1.1, 1.2][v];

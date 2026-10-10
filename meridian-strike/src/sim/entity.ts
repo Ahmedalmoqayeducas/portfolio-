@@ -115,6 +115,12 @@ export class Entity {
   visMul = 1;
   spdMul = 1;
   rngMul = 1;
+  /** veteran skills (see skills.ts) */
+  evade = 0;
+  flak = 1;
+  aim = 1;
+  armorMul = 1;
+  regen = 0;
   /** timed-life units (summoned drones etc.), in ticks; 0 = permanent */
   ttl = 0;
   /** swarm-buff active (China) */

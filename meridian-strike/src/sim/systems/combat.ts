@@ -122,7 +122,7 @@ export function fireWeapon(sim: Sim, e: Entity, wi: number, t: Entity, sx?: numb
     az += Math.cos(t.heading) * t.speed * T * 0.85;
   }
   if (w.spread) {
-    const s = w.spread * Math.min(1, dist / Math.max(1, w.range));
+    const s = w.spread * e.aim * Math.min(1, dist / Math.max(1, w.range));
     ax += (sim.rng() - 0.5) * 2 * s; az += (sim.rng() - 0.5) * 2 * s;
   }
   const swarm = (e.swarmed ? 1.08 : 1) * (e.netted ? 1.18 : 1);
@@ -145,7 +145,8 @@ export function fireWeapon(sim: Sim, e: Entity, wi: number, t: Entity, sx?: numb
   if (spd <= 0) {
     let pHit = 1 - Math.min(0.5, (dist / Math.max(1, w.range)) * 0.38);
     if (t.speed > 2) pHit *= 0.9;
-    if (tAir) pHit *= 0.72;
+    if (tAir) pHit *= 0.72 * t.flak;
+    pHit = 1 - (1 - pHit) * e.aim;
     if (t.def.kind === 'structure') pHit = 1;
     const hit = sim.rng() < pHit;
     sim.emitAt({ k: 'shot', vfx: w.vfx, x: mx, y: my, z: mz, tx: hit ? t.x : ax + (sim.rng() - 0.5) * 6, ty: hit ? ay : ay + (sim.rng() - 0.5) * 3, tz: hit ? t.z : az + (sim.rng() - 0.5) * 6, owner: e.owner }, mx, mz);
@@ -200,6 +201,7 @@ export function combatTick(sim: Sim): void {
     const e = list[i];
     if (!e.alive) continue;
     const d = e.def;
+    if (e.regen > 0 && e.hp < e.maxHp && (tick + e.id) % 30 === 0) e.hp = Math.min(e.maxHp, e.hp + e.maxHp * e.regen);
     if (d.network && (tick + e.id) % 20 === 0) {
       const near = sim.hash.query(list, e.x, e.z, 330, sim.tmp2);
       let on = false;
@@ -305,7 +307,7 @@ export function damage(sim: Sim, victim: Entity, amount: number, dtype: DamageTy
   if (!victim.alive || victim.def.prop) return;
   const mult = DAMAGE_MATRIX[dtype][victim.def.armor];
   if (mult <= 0 || amount <= 0) return;
-  let dmg = amount * mult;
+  let dmg = amount * mult * victim.armorMul;
   if (victim.swarmed) dmg *= 0.9;
   if (victim.inside) return;
   victim.hp -= dmg;
@@ -430,7 +432,10 @@ export function stepProjectiles(sim: Sim): void {
       if (f >= 1) { impact(sim, p, target); p.alive = false; }
     }
   }
-  for (const e of pendingVet) sim.recomputeStats(e);
+  for (const e of pendingVet) {
+    sim.recomputeStats(e);
+    if (e.alive && e.owner >= 0) sim.emitAt({ k: 'promote', id: e.id, def: e.def.id, vet: e.vet, x: e.x, y: e.y, z: e.z, owner: e.owner }, e.x, e.z);
+  }
   pendingVet.length = 0;
 }
 
@@ -440,6 +445,12 @@ function impact(sim: Sim, p: Projectile, target: Entity | undefined): void {
   const air = target ? isAirborne(target) : false;
   let ix = p.x, iz = p.z, iy = p.y;
   if (p.kind === 1 && target && target.alive) {
+    // veteran pilots: flares / evasive manoeuvres defeat the missile
+    if (air && target.evade > 0 && sim.rng() < target.evade) {
+      sim.emitAt({ k: 'flare', x: target.x, y: target.y, z: target.z, owner: target.owner }, target.x, target.z);
+      sim.emitAt({ k: 'boom', x: ix + (sim.rng() - 0.5) * 24, y: iy + 4, z: iz + (sim.rng() - 0.5) * 24, size: 0.7, kind: 'air' }, ix, iz);
+      return;
+    }
     // active protection
     if (target.def.aps && target.apsCd <= 0 && target.def.armor !== 'structure') {
       target.apsCd = target.def.aps * TICK_RATE;

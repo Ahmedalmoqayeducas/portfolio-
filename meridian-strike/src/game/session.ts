@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { buildMap, BuiltMap, spawnIndex } from '../maps/maps';
 import { DEF_LIST } from '../sim/defs';
+import { VET_NAMES } from '../sim/skills';
 import { DT, GameOptions, InitMsg, PlayerSetup, SimEvent, Snapshot, Command } from '../sim/types';
 import { Terrain } from '../render/terrain';
 import { Environment } from '../render/environment';
@@ -222,6 +223,19 @@ export class GameSession {
         if (ev.structure) vfx.structureDeath(ev.x, this.terrain.heightAt(ev.x, ev.z), ev.z, d?.radius ?? 8);
         else if (d && d.move !== 'foot' && d.layer !== 'air') vfx.vehicleWreck(ev.x, ev.y, ev.z);
         else if (d?.layer === 'air') vfx.vehicleWreck(ev.x, this.terrain.heightAt(ev.x, ev.z), ev.z);
+        break;
+      }
+      case 'flare':
+        vfx.flares(ev.x, ev.y, ev.z);
+        this.audio.flare(ev, this.rts.target);
+        break;
+      case 'promote': {
+        vfx.promoteAt(ev.x, this.terrain.heightAt(ev.x, ev.z), ev.z, ev.vet);
+        if (ev.owner === this.viewer) {
+          const d = DEF_LIST.find((x) => x.id === ev.def);
+          this.hud?.toast(`${d?.name ?? 'Unit'} promoted: ${VET_NAMES[ev.vet] ?? ''} ${'★'.repeat(ev.vet)}`);
+          this.audio.promote(ev.vet);
+        }
         break;
       }
       case 'strikeWarn':

@@ -595,6 +595,28 @@ export class Vfx {
     this.pointLight(x + dx * 3, y, z + dz * 3, 1.8, 0xff9a40);
   }
 
+  /** countermeasure flares: a fan of bright burning sparks falling away from an aircraft */
+  flares(x: number, y: number, z: number): void {
+    this.flashAt(x, y, z, 1.4, 0.18);
+    for (let i = 0; i < 9; i++) {
+      const a = (i / 9) * Math.PI * 2 + rnd();
+      this.spark(x, y, z, Math.cos(a) * (6 + rnd() * 8), -1 - rnd() * 5, Math.sin(a) * (6 + rnd() * 8), 0.9 + rnd() * 0.9, 0.22 + rnd() * 0.1, 1.4);
+    }
+    const s = this.pSmoke(0.4, 0.3);
+    s.x = x; s.y = y; s.z = z; s.vy = -1; s.life = 1.6; s.s0 = 0.6; s.s1 = 2.4; s.drag = 1.2; s.dis1 = 0.5; s.fadeOut = 0.8;
+    this.vol.commit();
+  }
+
+  /** promotion burst: golden sparks rising from the unit */
+  promoteAt(x: number, y: number, z: number, vet: number): void {
+    this.flashAt(x, y + 2, z, 1.2, 0.3);
+    const n = 8 + vet * 5;
+    for (let i = 0; i < n; i++) {
+      const a = rnd() * Math.PI * 2, v = 2 + rnd() * 4;
+      this.spark(x, y + 1, z, Math.cos(a) * v, 5 + rnd() * 7, Math.sin(a) * v, 1 + rnd() * 0.8, 0.14 + rnd() * 0.06, 1.2);
+    }
+  }
+
   tracer(ax: number, ay: number, az: number, bx: number, by: number, bz: number, kind: string): void {
     const heavy = kind === 'cannon';
     const dx = bx - ax, dy = by - ay, dz = bz - az;

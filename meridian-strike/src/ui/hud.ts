@@ -1,6 +1,7 @@
 import type { GameSession } from '../game/session';
 import type { Mode } from '../game/input';
 import { Minimap } from './minimap';
+import { skillClass, skillLines, VET_NAMES } from '../sim/skills';
 import { getIcon } from './icons';
 import { DEF_LIST, DEFS, GENERALS, POWERS, UPGRADES } from '../sim/defs';
 import type { EntityDef, PlayerInfo, SimEvent, Snapshot, Stance } from '../sim/types';
@@ -210,6 +211,12 @@ export class Hud {
       if (v.flags & 4) html += `<span>Building ${Math.round(v.prog * 100)}%</span>`;
       if (v.flags & 16) html += `<span style="color:#7ad2ff">DISABLED</span>`;
       html += `</div>`;
+      if (d.kind === 'unit' && d.cost > 0) {
+        const cls = skillClass(d), lines = skillLines(cls);
+        const got = lines.slice(0, v.vet).map((l, i) => `<div><b>${'★'.repeat(i + 1)}</b> ${l}</div>`).join('');
+        const next = v.vet < 3 ? `<div class="next">Next (${VET_NAMES[v.vet + 1]}): ${lines[v.vet]}</div>` : '';
+        html += `<div class="sel-vet"><div class="rank">${VET_NAMES[v.vet]}</div>${got}${next}</div>`;
+      }
       if (d.weapons && own) html += `<div class="sel-weapons">${d.weapons.map((w) => `${w.name}: ${w.damage} dmg · ${w.range}m`).join('<br>')}</div>`;
       html += `</div></div>`;
     } else {

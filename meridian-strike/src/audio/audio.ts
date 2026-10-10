@@ -197,6 +197,23 @@ export class AudioSystem {
     if (ev.kind === 'nuke') this.tone(t, 50, 18, 4, 'sine', o.node, 1.2);
   }
 
+  flare(ev: { x: number; y: number; z: number }, cam: THREE.Vector3): void {
+    this.lx = cam.x; this.lz = cam.z;
+    if (!this.ensure()) return;
+    const sp = this.spatial(ev.x, ev.z);
+    if (sp.g < 0.03 || !this.limit('flare', 2, 200)) return;
+    const t = this.ctx!.currentTime;
+    const o = this.out(sp.pan, sp.g * 0.35);
+    this.noiseBurst(t, 0.5, 'highpass', 2200, 900, 0.7, o.node, 0.8);
+  }
+
+  promote(vet: number): void {
+    if (!this.ensure()) return;
+    const n: [number, number][] = vet >= 3 ? [[523, 0.09], [659, 0.09], [784, 0.09], [1047, 0.3]] : vet === 2 ? [[523, 0.09], [784, 0.09], [988, 0.22]] : [[523, 0.09], [784, 0.2]];
+    this.beepSeq(n, 0.2, 'triangle');
+    this.say(vet >= 3 ? 'Heroic' : vet === 2 ? 'Elite' : 'Veteran');
+  }
+
   private beepSeq(notes: [number, number][], vol = 0.25, type: OscillatorType = 'sine'): void {
     if (!this.ensure()) return;
     const t0 = this.ctx!.currentTime;

@@ -124,23 +124,41 @@ export class EntityRenderer {
     quad.setAttribute('aBar', this.barAttr);
     this.barMesh = new THREE.InstancedMesh(quad, new THREE.ShaderMaterial({
       vertexShader: /* glsl */ `
-        attribute vec4 aBar; varying vec2 vUv; varying vec4 vBar;
+        attribute vec4 aBar; varying vec2 vUv; varying vec4 vBar; varying float vPw;
         void main(){
           vUv = uv; vBar = aBar;
           vec4 c = modelViewMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);
           float w = instanceMatrix[0][0];
           float pw = 26.0 + w * 1.6;
-          c.xy += vec2(position.x * pw, position.y * 5.0) * (-c.z * 0.00104);
+          vPw = pw;
+          c.xy += vec2(position.x * pw, position.y * 11.0 + 3.0) * (-c.z * 0.00104);
           gl_Position = projectionMatrix * c;
         }`,
       fragmentShader: /* glsl */ `
-        varying vec2 vUv; varying vec4 vBar;
+        varying vec2 vUv; varying vec4 vBar; varying float vPw;
         vec3 ramp(float f){ return f > 0.5 ? mix(vec3(1.0,0.85,0.1), vec3(0.2,0.9,0.25), (f-0.5)*2.0) : mix(vec3(0.95,0.15,0.1), vec3(1.0,0.85,0.1), f*2.0); }
         void main(){
-          float edge = step(vUv.x, 0.012) + step(0.988, vUv.x) + step(vUv.y, 0.12) + step(0.88, vUv.y);
-          vec3 c = vUv.x <= vBar.x ? (vBar.y > 0.5 ? vec3(0.3,0.65,1.0) : ramp(vBar.x)) : vec3(0.06,0.06,0.07);
-          if (edge > 0.5) c = vec3(0.0);
-          gl_FragColor = vec4(c, 0.95);
+          float row = vUv.y;
+          if (row < 0.46) {
+            float by = row / 0.46;
+            float edge = step(vUv.x, 0.012) + step(0.988, vUv.x) + step(by, 0.12) + step(0.88, by);
+            vec3 c = vUv.x <= vBar.x ? (vBar.y > 0.5 ? vec3(0.3,0.65,1.0) : ramp(vBar.x)) : vec3(0.06,0.06,0.07);
+            if (edge > 0.5) c = vec3(0.0);
+            gl_FragColor = vec4(c, 0.95);
+          } else {
+            float vet = vBar.z;
+            if (vet < 0.5) discard;
+            vec2 p = vec2(vUv.x * vPw, (row - 0.54) / 0.46 * 5.0);
+            float a = 0.0;
+            for (int i = 0; i < 3; i++) {
+              if (float(i) + 0.5 > vet) break;
+              float v = abs(p.x - (3.4 + float(i) * 6.4));
+              float top = 4.4 - v * 0.9;
+              if (v < 3.2 && p.y < top && p.y > top - 1.7) a = 1.0;
+            }
+            if (a < 0.5) discard;
+            gl_FragColor = vec4(vet > 2.5 ? vec3(1.0, 0.95, 0.55) : vec3(1.0, 0.8, 0.2), 1.0);
+          }
         }`,
       transparent: true, depthTest: false, depthWrite: false,
     }), 3000);
@@ -405,6 +423,7 @@ export class EntityRenderer {
         const building = structure && ((v.flags & F_BUILDING) || capturing);
         barArr[bars * 4] = building ? v.prog : v.hp;
         barArr[bars * 4 + 1] = building ? 1 : 0;
+        barArr[bars * 4 + 2] = structure ? 0 : v.vet;
         bars++;
       }
     }

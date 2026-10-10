@@ -321,7 +321,6 @@ export function stepUnit(sim: Sim, e: Entity): void {
   if (e.reveal > 0) e.reveal--;
   if (e.apsCd > 0) e.apsCd--;
   if (e.stun > 0) { e.stun--; e.moving = false; e.speed = 0; return; }
-  if (e.vet >= 2 && sim.tick % 30 === 0 && e.hp < e.maxHp) e.hp = Math.min(e.maxHp, e.hp + e.maxHp * (e.vet === 2 ? 0.01 : 0.02));
   if (d.healAura && sim.tick % 30 === 0) healAura(sim, e);
   if (e.deployed && d.deploy === 'dig') { e.moving = false; e.speed = 0; return; }
 

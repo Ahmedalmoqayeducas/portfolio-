@@ -158,3 +158,8 @@ button.big.danger:hover { border-color: var(--bad); }
 .slots select.s-per { min-width: 100px; }
 .row-btns .big:disabled { opacity: .4; }
 .slots input.s-name { min-width: 120px; width: 120px; }
+
+.sel-vet{margin-top:6px;font-size:12px;line-height:1.35;color:#cfd8e0}
+.sel-vet .rank{color:#ffd24a;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.sel-vet b{color:#ffd24a;margin-right:4px}
+.sel-vet .next{color:#8aa0b2;margin-top:2px}
