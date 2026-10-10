@@ -1,7 +1,8 @@
 name: Meridian Strike - Windows installer
 
 # Builds MeridianStrike-Setup-<version>.exe (NSIS installer) on a Windows runner.
-# Run it from the Actions tab (Run workflow), or push a tag like  meridian-v1.1.0 .
+# Builds on packaging changes; publishes a GitHub Release when the commit message contains [release],
+# when a tag like meridian-v1.1.0 is pushed, or when started manually with "Publish release" ticked.
 on:
   workflow_dispatch:
     inputs:
@@ -55,10 +56,11 @@ jobs:
           path: meridian-strike/release/*.exe
           if-no-files-found: error
       - name: Publish release
-        if: ${{ github.ref_type == 'tag' || (github.event_name == 'workflow_dispatch' && inputs.release) }}
+        if: ${{ github.ref_type == 'tag' || (github.event_name == 'workflow_dispatch' && inputs.release) || contains(github.event.head_commit.message, '[release]') }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_type == 'tag' && github.ref_name || format('meridian-build-{0}', github.run_number) }}
+          target_commitish: ${{ github.sha }}
           name: ${{ github.ref_type == 'tag' && github.ref_name || format('Meridian Strike build {0}', github.run_number) }}
           body: |
             Windows installer for Meridian Strike. Download the `.exe`, run it and choose an install folder.
