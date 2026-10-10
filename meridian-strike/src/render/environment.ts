@@ -234,11 +234,11 @@ export class Environment {
     const keyCol = new THREE.Color(1, 0.97, 0.9).multiply(trans);
     const base = 5.2 * st.sunPower * sunUp;
     const moonCol = new THREE.Color(0.52, 0.62, 1.0);
-    const moonI = 0.85 * night * (1 - sunUp);
+    const moonI = 1.8 * night * (1 - sunUp);
     const useSun = sunUp > 0.015;
     const lightDir = useSun ? this.sun : moon;
     const lightColor = useSun ? keyCol.clone().lerp(moonCol, (1 - sunUp) * 0.6) : moonCol;
-    const intensity = useSun ? base + moonI * 0.5 : Math.max(0.2, moonI);
+    const intensity = useSun ? base + moonI * 0.5 : Math.max(0.55, moonI);
     this.csm.lightDirection.copy(lightDir).negate();
     for (const l of this.csm.lights) { l.color.copy(lightColor); l.intensity = intensity; }
     atmo.key.dir.value.copy(lightDir);
@@ -254,7 +254,7 @@ export class Environment {
     // ---- ambient: hemisphere (cool sky / warm ground) + sky IBL
     this.hemi.color.copy(zen).lerp(new THREE.Color(0.3, 0.4, 0.8), 0.35);
     this.hemi.groundColor.setRGB(st.ground[0], st.ground[1], st.ground[2]);
-    this.hemi.intensity = 0.08 + 0.55 * nightK * nightK + (1 - sunUp) * 0.15;
+    this.hemi.intensity = 0.08 + 1.0 * nightK * nightK + (1 - sunUp) * 0.15;
     const bounce = new THREE.Color(st.ground[0], st.ground[1], st.ground[2]);
     bounce.multiply(keyCol).multiplyScalar(0.55 * sunUp + 0.03);
     bounce.add(new THREE.Color(0.015, 0.02, 0.035).multiplyScalar(nightK));
@@ -272,7 +272,7 @@ export class Environment {
     fog.density = st.fogDensity * 0.9 + st.haze * 4;
 
     // ---- exposure + colour grade
-    this.renderer.toneMappingExposure = st.exposure * (1 + 0.5 * nightK);
+    this.renderer.toneMappingExposure = st.exposure * (1 + 1.1 * nightK);
     const g = atmo.grade;
     g.sat.value = st.sat * (1 - 0.18 * nightK);
     g.contrast.value = st.contrast;

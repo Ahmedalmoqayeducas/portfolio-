@@ -318,3 +318,13 @@ Where the implementation differs from or extends the plan above:
 * **Audio:** all synthesised in Web Audio (weapons, explosions, UI, adaptive music, radio voice through the browser's speech synthesis).
 * **Replays:** the simulation is deterministic (seeded RNG, command log) — *Save replay* in the pause / end screen, *Watch replay* in the main menu. See `docs/BALANCE.md` for the AI-vs-AI balance method and results.
 * **Not included in v1.0:** LAN lockstep (the simulation is deterministic-by-commands and ready for it), campaigns, naval units.
+
+
+## Appendix B — Graphics pipeline (v1.1)
+
+* **Models** (`src/render/kit.ts`): one indexed geometry per part with attributes `position, normal, color, uv=(camo,grime), aMat=(roughness, metalness, emissive, ao), aEx=(edge wear, material kind, limb pivot x/z)`. Primitives: bevelled hexahedra (box/slab/taper/wedge; fillet look via normal blending), lathe, superellipse loft (fuselages, hulls, domes), chamfered prism (side-profile hulls, wings), sweep (pipes), rods. Large faces are tessellated so the **voxel-baked per-vertex AO** (`bakeAO`) stays local. Turrets receive the hull as an occluder.
+* **Unit shader** (`makeUnitMaterial`): per-faction camouflage (USA blotch, China digital, Iran splinter), soiling/dust/mud, chipped paint on bevelled edges, material kinds (tracks scroll with speed, tyre tread, glass, concrete stains/joints, corrugated metal, roof tiles, brick), bump from derivatives, emissive windows/lights at night, vertex-shader walk cycle for infantry legs.
+* **Structures** (`models_struct*.ts`, `structparts.ts`): faction architecture (US glass/concrete HQ, Chinese tiered-roof halls, Iranian sandstone/dome/minaret), windows with night glow, rooftop equipment, aprons, flags, barriers.
+* **Terrain/water/sky** (`terrain*.ts`, `water.ts`, `atmo.ts`, `grade.ts`): GPU-generated PBR layer sets (no image assets), height-aware splat blending, triplanar cliffs, hi-res normal map from the heightfield, shoreline foam/depth colour, aerial perspective + cloud shadows, final colour grade pass.
+* **VFX** (`vfx*.ts`, `particleTex.ts`, `debris.ts`): procedural flipbook sheets, lit smoke, fireballs, debris chunks with trails, shock rings, scorch decals, soft terrain fade.
+* **Desktop**: `desktop/main.cjs` (Electron) serves `dist/` over `127.0.0.1:47811` so module workers and localStorage behave like the web build; CI smoke test boots the game and waits for the sim worker to tick.

@@ -795,9 +795,20 @@ const BUILDERS: Record<string, Builder> = {
 
 const cache = new Map<string, ModelData>();
 
-export function getModel(def: EntityDef): ModelData {
-  let m = cache.get(def.id);
+/** lod 0 = full detail, 1 = distant version (small parts dropped, no bevels, fewer segments) */
+export function getModel(def: EntityDef, lod = 0): ModelData {
+  const key = lod ? def.id + '#' + lod : def.id;
+  let m = cache.get(key);
   if (m) return m;
+  const prev = Kit.lod;
+  Kit.lod = lod;
+  try { m = buildModel(def); } finally { Kit.lod = prev; }
+  cache.set(key, m);
+  return m;
+}
+
+function buildModel(def: EntityDef): ModelData {
+  let m: ModelData;
   const spec = def.model;
   const style = String(spec.style ?? (def.faction === 'neutral' ? 'neutral' : def.faction));
   const pal = PALETTES[style] ?? PALETTES.neutral;
@@ -809,7 +820,6 @@ export function getModel(def: EntityDef): ModelData {
     k.box(r * 1.4, r * 0.8, r * 1.8, 0, r * 0.4, 0, pal.main);
     m = { body: k.build(), height: r };
   }
-  cache.set(def.id, m);
   return m;
 }
 
@@ -818,6 +828,7 @@ export async function prebuildModels(defs: EntityDef[], onProgress?: (done: numb
   let n = 0;
   for (const d of defs) {
     getModel(d);
+    getModel(d, 1);
     n++;
     onProgress?.(n, defs.length);
     if (n % 3 === 0) await new Promise((r) => setTimeout(r, 0));

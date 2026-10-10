@@ -6,8 +6,15 @@ Browser game for desktop, built with TypeScript + Three.js. Original code, origi
 * **3 armies** — United States (networked precision / air power), China (industrial mass), Iran (asymmetric & hidden) — 9 generals, ~19 units + ~15 structures each, a superweapon each.
 * **Skirmish** for **2–10 players**, human + AI (Easy / Medium / Hard / Brutal, 6 AI personalities), free-for-all or **teams by team number** (same number = allies, 0 = alone).
 * **5 maps**: Red Mesa (2–4), Harbor Line (2–6), Oasis Crown (2–6), Highland Pass (2–8), Grand Meridian (2–10).
-* Realistic-style graphics: PBR + cascaded shadows, SSAO, bloom, SMAA, dynamic sky / time of day, weather, GPU-instanced units, particle VFX, decals, wrecks.
+* Realistic-style graphics: hard-surface procedural models (bevelled/lofted meshes, baked ambient occlusion, per-faction camo, animated infantry legs and tank tracks), PBR terrain splat with triplanar cliffs, depth-aware water with foam, cascaded shadows, SSAO, bloom, colour grading, atmospheric haze + cloud shadows, volumetric flipbook explosions / smoke / fire with debris, decals, wrecks.
 * Everything generated in code: models, textures, sound effects, music, voice lines (browser speech synthesis).
+
+## Play on Windows (installer)
+
+Every packaging build produces `MeridianStrike-Setup-<version>.exe` (GitHub → **Actions → "Meridian Strike - Windows installer" → latest run → Artifacts**, or the **Releases** page after a tagged build `meridian-v1.x.y`).
+Run it, choose a folder, launch *Meridian Strike* from the desktop shortcut. It is an Electron shell around the same game: always asks for the high-performance GPU, never throttles in the background, starts fullscreen (F11 toggles, F12 devtools).
+Windows SmartScreen may warn because the installer is unsigned → *More info → Run anyway*.
+To build it yourself: `npm run dist:win` (on Windows) → `release/`. To trigger a release build: push a tag `meridian-v1.1.0` or use *Run workflow* with "Publish release" ticked.
 
 ## Run
 
@@ -17,10 +24,11 @@ npm run dev          # http://localhost:5173  (add --host to play from another m
 npm run build        # production bundle in dist/
 npm test             # headless sim tests + AI soak tests (vitest)
 npm run shot         # headless Chromium screenshot smoke test -> tests/out/
+npm run desktop      # build + open the Electron desktop shell locally
 ```
 
 Open the page, choose **Skirmish**, pick a map / armies / team numbers and **Start**.
-**Watch AI Battle** runs a spectator match. URL helpers: `?auto=1&map=grand_meridian&n=10&spectate=1&speed=4&q=low` (see `src/main.ts`), `?gallery=usa|china|iran` shows every model.
+**Watch AI Battle** runs a spectator match. URL helpers: `?auto=1&map=grand_meridian&n=10&spectate=1&speed=4&q=low` (see `src/main.ts`), `?gallery=usa|china|iran` shows every model (`&sheet=1&cols=4&rows=3&p=0` = contact sheet, `&only=usa_abrams&yaw=35&pitch=25` = single model, `&hour=14` lighting). Screenshot helpers: `?hour=17.5`, `?cam=x,z,distance,yawDeg`.
 
 ## Controls
 
@@ -43,7 +51,8 @@ src/
     systems/  orders/movement, combat/projectiles, economy/production, air, vision (fog of war), powers
     ai/       build orders, production weights, waves, powers, personalities
   maps/       height-field generator + the five map definitions
-  render/     Three.js: terrain, props, procedural model library, instanced entity renderer, VFX, fog shader, weather
+  render/     Three.js: terrain (PBR splat shader), water, props, atmosphere/sky/grade, procedural model library (kit.ts hard-surface kit, parts.ts/structparts.ts helpers, models*.ts), unit shader (materials.ts), instanced entity renderer, VFX (vfx*.ts), fog shader, weather
+  desktop/    Electron shell (local HTTP server + GPU switches) used by the Windows installer
   game/       session glue, input controller, worker/local sim hosts
   ui/         HUD, command card, minimap, lobby, icons
   audio/      synthesised SFX / music / voice

@@ -279,6 +279,7 @@ export class GameSession {
     this.env.update();
     this.terrain.update(this.time);
     this.weather.update(dt, this.rts.target, this.env.daylight);
+    this.entities.camPos.copy(this.rts.camera.position);
     this.entities.frame(nowS, dt, this.selection, this.hover);
     for (let i = this.warnRings.length - 1; i >= 0; i--) {
       const w = this.warnRings[i];

@@ -107,6 +107,9 @@ export class Kit {
   readonly camo: number; readonly grime: number; readonly bevelMax: number; readonly ground: boolean;
   /** max edge length of flat quads (0 = off); long faces are tessellated so per-vertex AO stays local */
   readonly tess: number;
+  /** global detail level used when a Kit is created (0 = full, 1 = distant LOD: tiny parts dropped, no bevels, fewer segments) */
+  static lod = 0;
+  readonly lod = Kit.lod;
 
   constructor(opt: { camo?: number; grime?: number; seed?: number; bevelMax?: number; ground?: boolean; tess?: number } = {}) {
     this.tess = opt.tess ?? 0;
@@ -184,7 +187,7 @@ export class Kit {
 
   /** quad p0-p1-p2-p3 (cycle) with per-corner normals, optionally tessellated into a grid */
   private gridQuad(p0: V3, p1: V3, p2: V3, p3: V3, n0: V3, n1: V3, n2: V3, n3: V3, edge = 0): void {
-    const t = this.tess;
+    const t = this.tess * (this.lod > 0 ? 2.5 : 1);
     const nu = t > 0 ? Math.max(1, Math.ceil(Math.max(len(sub(p1, p0)), len(sub(p2, p3))) / t)) : 1;
     const nv = t > 0 ? Math.max(1, Math.ceil(Math.max(len(sub(p3, p0)), len(sub(p2, p1))) / t)) : 1;
     if (nu === 1 && nv === 1) {
@@ -226,7 +229,7 @@ export class Kit {
     }
     let minEdge = Infinity;
     for (const f of faces) for (let k = 0; k < 4; k++) minEdge = Math.min(minEdge, len(sub(f.p[(k + 1) % 4], f.p[k])));
-    let b = o.bevel ?? bevelReq;
+    let b = this.lod > 0 ? 0 : (o.bevel ?? bevelReq);
     b = Math.min(b, minEdge * 0.4);
     if (!(b > 0.004)) {
       for (const f of faces) this.gridQuad(f.p[0], f.p[1], f.p[2], f.p[3], f.n, f.n, f.n, f.n);
@@ -269,6 +272,7 @@ export class Kit {
   }
 
   box(w: number, h: number, d: number, x: number, y: number, z: number, color: number, o: PartOpts = {}): this {
+    if (this.lod > 0 && Math.max(w, h, d) < 0.3) return this;
     const hw = w / 2, hh = h / 2, hd = d / 2;
     const c: V3[] = [];
     for (let i = 0; i < 8; i++) c.push([(i & 1 ? hw : -hw), (i & 2 ? hh : -hh), (i & 4 ? hd : -hd)]);
@@ -277,6 +281,7 @@ export class Kit {
 
   /** box whose top front (+z) edge is dropped by `drop` (glacis plates, noses) */
   slab(w: number, h: number, d: number, drop: number, x: number, y: number, z: number, color: number, o: PartOpts = {}): this {
+    if (this.lod > 0 && Math.max(w, h, d) < 0.3) return this;
     const hw = w / 2, hh = h / 2, hd = d / 2;
     const c: V3[] = [];
     for (let i = 0; i < 8; i++) c.push([(i & 1 ? hw : -hw), (i & 2 ? hh : -hh) - ((i & 2) && (i & 4) ? drop : 0), (i & 4 ? hd : -hd)]);
@@ -285,6 +290,7 @@ export class Kit {
 
   /** frustum-like box: width/depth at bottom (wb,db) and top (wt,dt); offz shifts the top along z (sloped sides) */
   taper(wb: number, wt: number, h: number, db: number, dt: number, x: number, y: number, z: number, color: number, o: PartOpts = {}, offz = 0): this {
+    if (this.lod > 0 && Math.max(wb, wt, h, db, dt) < 0.3) return this;
     const hh = h / 2;
     const c: V3[] = [];
     for (let i = 0; i < 8; i++) {
@@ -297,6 +303,7 @@ export class Kit {
 
   /** wedge / ramp: rectangular base w×d, height h at the back (-z) falling to hFront at the front (+z) */
   wedge(w: number, h: number, d: number, hFront: number, x: number, y: number, z: number, color: number, o: PartOpts = {}): this {
+    if (this.lod > 0 && Math.max(w, h, d) < 0.3) return this;
     const hw = w / 2, hd = d / 2;
     const c: V3[] = [];
     for (let i = 0; i < 8; i++) c.push([(i & 1 ? hw : -hw), (i & 2) ? ((i & 4) ? hFront : h) : 0, (i & 4 ? hd : -hd)]);
@@ -319,8 +326,13 @@ export class Kit {
   // ------------------------------------------------------------------ lathe
   /** Surface of revolution around Y. profile = [radius, y] from bottom to top. */
   lathe(profile: [number, number][], x: number, y: number, z: number, color: number, o: PartOpts = {}, creaseDeg = 58): this {
+    if (this.lod > 0) {
+      let mr = 0, y0 = Infinity, y1 = -Infinity;
+      for (const q of profile) { mr = Math.max(mr, q[0]); y0 = Math.min(y0, q[1]); y1 = Math.max(y1, q[1]); }
+      if (mr < 0.03 || (mr < 0.09 && y1 - y0 < 0.7)) return this;
+    }
     this.begin(x, y, z, color, o);
-    const seg = Math.max(5, o.seg ?? 16);
+    const seg = this.lod > 0 ? Math.max(5, Math.round((o.seg ?? 16) * 0.55)) : Math.max(5, o.seg ?? 16);
     const np = profile.length;
     const sn: [number, number][] = [];
     for (let i = 0; i < np - 1; i++) {
@@ -412,7 +424,7 @@ export class Kit {
   loft(st: Station[], x: number, y: number, z: number, color: number, o: PartOpts & { capStart?: boolean; capEnd?: boolean } = {}): this {
     this.begin(x, y, z, color, o);
     const S = st.length;
-    const seg = Math.max(8, o.seg ?? 20);
+    const seg = this.lod > 0 ? Math.max(8, Math.round((o.seg ?? 20) * 0.6)) : Math.max(8, o.seg ?? 20);
     const P: V3[][] = [];
     const C: V3[] = [];
     for (const s of st) {
@@ -494,7 +506,7 @@ export class Kit {
       minEdge = Math.min(minEdge, l);
       en.push([dy / l, -dx / l]);
     }
-    let bv = o.bevel ?? Math.min(this.bevelMax, depth * 0.15);
+    let bv = this.lod > 0 ? 0 : (o.bevel ?? Math.min(this.bevelMax, depth * 0.15));
     bv = Math.min(bv, minEdge * 0.35, depth * 0.35);
     if (!(bv > 0.004)) bv = 0;
     const hd = depth / 2;
@@ -541,8 +553,9 @@ export class Kit {
 
   // ------------------------------------------------------------------ sweep (pipes, hoses, cables)
   sweep(path: V3[], r: number, color: number, o: PartOpts & { rEnd?: number; caps?: boolean } = {}): this {
+    if (this.lod > 0 && r < 0.05) return this;
     this.begin(0, 0, 0, color, o);
-    const seg = Math.max(5, o.seg ?? 8);
+    const seg = this.lod > 0 ? 5 : Math.max(5, o.seg ?? 8);
     const n = path.length;
     if (n < 2) return this;
     const rings: number[][] = [];

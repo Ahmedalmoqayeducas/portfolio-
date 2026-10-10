@@ -161,7 +161,7 @@ void msTerrain(vec3 wp, out vec3 oAlb, out float oRough, out vec3 oN, out float 
   }
   nW = normalize(nW);
   // mid-distance detail fade: high-frequency albedo contrast relaxes toward the layer average (kills speckle shimmer)
-  alb = mix(alb, albAvg, 0.6 * smoothstep(30.0, 150.0, dist));
+  alb = mix(alb, albAvg, 0.72 * smoothstep(9.0, 75.0, dist));
 
   // large scale tint + cavity from the terrain normal map
   float tA = (m1 - 0.5) * 0.5, tB = (m2 - 0.5) * 0.34;

@@ -97,6 +97,8 @@ export class EntityRenderer {
   private barAttr: THREE.InstancedBufferAttribute;
   private projTracer: THREE.InstancedMesh;
   private projBody: THREE.InstancedMesh;
+  /** camera position, set by the session each frame (distance LOD) */
+  camPos = new THREE.Vector3();
   playerColors: number[] = [];
   nightGlow = 0.1;
   viewer = 0;
@@ -174,11 +176,12 @@ export class EntityRenderer {
     return m;
   }
 
-  private bucket(defIdx: number): Bucket {
-    let b = this.buckets.get(defIdx);
+  private bucket(defIdx: number, lod = 0): Bucket {
+    const key = defIdx * 2 + lod;
+    let b = this.buckets.get(key);
     if (b) return b;
     const def = DEF_LIST[defIdx];
-    const model = getModel(def);
+    const model = getModel(def, lod);
     const matBody = this.bodyMaterial(def.faction);
     const mk = (geo0: THREE.BufferGeometry, mat: THREE.Material, cast: boolean, cap = 32, animated = false): Part => {
       let geo = geo0;
@@ -210,7 +213,7 @@ export class EntityRenderer {
     };
     if (b.team) { (b.team.mesh as THREE.InstancedMesh).setColorAt(0, col.set(0xffffff)); }
     if (b.teamTurret) { (b.teamTurret.mesh as THREE.InstancedMesh).setColorAt(0, col.set(0xffffff)); }
-    this.buckets.set(defIdx, b);
+    this.buckets.set(key, b);
     return b;
   }
 
@@ -298,7 +301,10 @@ export class EntityRenderer {
 
     for (const v of this.views.values()) {
       const def = DEF_LIST[v.def];
-      const b = this.bucket(v.def);
+      const cdx = this.camPos.x - v.ix, cdy = this.camPos.y - v.iy, cdz = this.camPos.z - v.iz;
+      const camD2 = cdx * cdx + cdy * cdy + cdz * cdz;
+      const lodFar = def.kind === 'structure' ? 300 : 150;
+      const b = this.bucket(v.def, camD2 > lodFar * lodFar ? 1 : 0);
       const t = Math.min(1, alpha);
       v.ix = v.px + (v.x - v.px) * t; v.iy = v.py + (v.y - v.py) * t; v.iz = v.pz + (v.z - v.pz) * t;
       v.ih = lerpAngle(v.ph, v.h, t); v.it = lerpAngle(v.pt, v.t, t);

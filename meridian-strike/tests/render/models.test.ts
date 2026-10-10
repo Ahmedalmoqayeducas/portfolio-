@@ -10,6 +10,9 @@ describe('models', () => {
       const t0 = performance.now();
       const m = getModel(def);
       const dt = performance.now() - t0;
+      const m1 = getModel(def, 1);
+      const triOf = (mm: typeof m) => [mm.body, mm.turret, mm.team, mm.teamTurret, mm.glow, mm.rotor, mm.rotor2].filter(Boolean).reduce((a, g) => a + ((g as import('three').BufferGeometry).index!.count / 3), 0);
+      const t1 = triOf(m1);
       totalMs += dt;
       const geos = [m.body, m.turret, m.team, m.teamTurret, m.glow, m.rotor, m.rotor2].filter(Boolean) as import('three').BufferGeometry[];
       let tris = 0;
@@ -18,7 +21,8 @@ describe('models', () => {
         for (const v of g.getAttribute('position').array as Float32Array) if (!Number.isFinite(v)) throw new Error(`NaN in ${def.id}`);
       }
       totalTris += tris;
-      rows.push(`${def.id.padEnd(22)} ${dt.toFixed(0).padStart(5)} ms ${String(Math.round(tris)).padStart(7)} tris`);
+      rows.push(`${def.id.padEnd(22)} ${dt.toFixed(0).padStart(5)} ms ${String(Math.round(tris)).padStart(7)} tris  lod1 ${Math.round(t1)}`);
+      expect(t1).toBeLessThanOrEqual(tris);
       expect(tris).toBeGreaterThan(0);
     }
     console.log(rows.join('\n'));

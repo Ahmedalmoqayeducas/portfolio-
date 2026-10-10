@@ -37,23 +37,23 @@ export interface AtmoStyle {
 export const ATMO_STYLES: Record<Biome, AtmoStyle> = {
   desert: {
     turbidity: 5.5, rayleigh: 1.25, mie: 0.0045, mieG: 0.8, fogDensity: 0.0005, fogK: 0.0042, fogBase: 0, haze: 0.00006,
-    hazeTint: [1.0, 0.9, 0.78], ground: [0.38, 0.2, 0.1], sunPower: 1.0, skyFill: 1.0, cloudCover: [0.58, 0.86], exposure: 0.52, sat: 1.24, contrast: 1.17, warm: 1.0,
+    hazeTint: [1.0, 0.9, 0.78], ground: [0.38, 0.2, 0.1], sunPower: 1.0, skyFill: 1.0, cloudCover: [0.58, 0.86], exposure: 0.66, sat: 1.24, contrast: 1.17, warm: 1.0,
   },
   urban: {
     turbidity: 4.0, rayleigh: 1.5, mie: 0.004, mieG: 0.78, fogDensity: 0.0005, fogK: 0.0048, fogBase: 0, haze: 0.00005,
-    hazeTint: [0.92, 0.97, 1.02], ground: [0.22, 0.2, 0.15], sunPower: 1.0, skyFill: 1.0, cloudCover: [0.5, 0.82], exposure: 0.52, sat: 1.22, contrast: 1.15, warm: 0.6,
+    hazeTint: [0.92, 0.97, 1.02], ground: [0.22, 0.2, 0.15], sunPower: 1.0, skyFill: 1.0, cloudCover: [0.5, 0.82], exposure: 0.66, sat: 1.22, contrast: 1.15, warm: 0.6,
   },
   oasis: {
     turbidity: 6.5, rayleigh: 1.1, mie: 0.0055, mieG: 0.8, fogDensity: 0.0005, fogK: 0.0042, fogBase: 0, haze: 0.00007,
-    hazeTint: [1.0, 0.92, 0.78], ground: [0.4, 0.26, 0.13], sunPower: 1.05, skyFill: 1.0, cloudCover: [0.66, 0.9], exposure: 0.52, sat: 1.22, contrast: 1.16, warm: 1.0,
+    hazeTint: [1.0, 0.92, 0.78], ground: [0.4, 0.26, 0.13], sunPower: 1.05, skyFill: 1.0, cloudCover: [0.66, 0.9], exposure: 0.66, sat: 1.22, contrast: 1.16, warm: 1.0,
   },
   highland: {
     turbidity: 2.6, rayleigh: 1.9, mie: 0.003, mieG: 0.76, fogDensity: 0.0006, fogK: 0.0052, fogBase: 0, haze: 0.00005,
-    hazeTint: [0.9, 0.96, 1.05], ground: [0.36, 0.38, 0.42], sunPower: 0.95, skyFill: 1.1, cloudCover: [0.46, 0.8], exposure: 0.5, sat: 1.12, contrast: 1.16, warm: 0.4,
+    hazeTint: [0.9, 0.96, 1.05], ground: [0.36, 0.38, 0.42], sunPower: 0.95, skyFill: 1.1, cloudCover: [0.46, 0.8], exposure: 0.64, sat: 1.12, contrast: 1.16, warm: 0.4,
   },
   mixed: {
     turbidity: 4.8, rayleigh: 1.4, mie: 0.004, mieG: 0.8, fogDensity: 0.0005, fogK: 0.0045, fogBase: 0, haze: 0.00006,
-    hazeTint: [1.0, 0.94, 0.86], ground: [0.26, 0.2, 0.12], sunPower: 1.0, skyFill: 1.0, cloudCover: [0.54, 0.84], exposure: 0.52, sat: 1.22, contrast: 1.16, warm: 0.8,
+    hazeTint: [1.0, 0.94, 0.86], ground: [0.26, 0.2, 0.12], sunPower: 1.0, skyFill: 1.0, cloudCover: [0.54, 0.84], exposure: 0.66, sat: 1.22, contrast: 1.16, warm: 0.8,
   },
 };
 
