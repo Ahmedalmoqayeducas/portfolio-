@@ -305,7 +305,7 @@ export type SimEvent =
   | { k: 'defeat'; player: number }
   | { k: 'strikeWarn'; x: number; z: number; r: number; t: number; owner: number }
   | { k: 'ping'; x: number; z: number; owner: number }
-  | { k: 'flare'; x: number; y: number; z: number; owner: number }
+  | { k: 'flare'; x: number; y: number; z: number; owner: number; /** aircraft that dodged */ id: number }
   | { k: 'promote'; id: number; def: string; vet: number; x: number; y: number; z: number; owner: number };
 
 export interface PlayerInfo {

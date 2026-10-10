@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import type { GameSession } from './session';
 import { DEF_LIST, DEFS } from '../sim/defs';
-import { Command, F_BUILDING, Stance } from '../sim/types';
+import { Command, F_BUILDING, F_GHOST, Stance } from '../sim/types';
 import { getModel } from '../render/models';
 import { makeUnitMaterial } from '../render/materials';
 import { fog } from '../render/fog';
+import { NavGrid } from '../sim/nav';
 
 export type Mode =
   | { k: 'normal' }
@@ -47,8 +48,11 @@ export class InputController {
   private lastGround = false;
   private el: HTMLCanvasElement;
   private cleanup: (() => void)[] = [];
+  /** same walkability grid the simulation uses to validate placements (terrain only: structures are checked separately) */
+  private nav: NavGrid;
 
   constructor(private s: GameSession) {
+    this.nav = new NavGrid(s.built.hf, s.built.def.waterLevel ?? null, 4);
     this.el = s.engine.canvas;
     this.box = document.createElement('div');
     this.box.id = 'selbox';
@@ -446,13 +450,14 @@ export class InputController {
     const hf = this.s.terrain.hf;
     const wl = this.s.built.def.waterLevel ?? null;
     let lo = 1e9, hi = -1e9;
-    for (const [ox, oz] of [[0, 0], [-1, -1], [1, -1], [-1, 1], [1, 1], [0, -1], [0, 1], [-1, 0], [1, 0]]) {
+    for (const [ox, oz] of [[0, 0], [-1, -1], [1, -1], [-1, 1], [1, 1]]) { // same five probes as the simulation
       const px = x + (ox * fw) / 2, pz = z + (oz * fd) / 2;
       const h = hf.heightAt(px, pz);
       if (wl !== null && h < wl + 0.2) return 'Cannot build on water';
       lo = Math.min(lo, h); hi = Math.max(hi, h);
     }
     if (hi - lo > 2.4) return 'Ground too uneven';
+    if (!this.nav.rectFree(x, z, fw, fd, 0.5)) return 'Blocked by steep ground or water';
     if (fog.on.value > 0.5 && fog.w > 0) {
       const size = fog.size.value, gx = Math.floor(((x + size / 2) / size) * fog.w), gz = Math.floor(((z + size / 2) / size) * fog.w);
       const data = fog.tex.image.data as Uint8Array;
@@ -460,11 +465,15 @@ export class InputController {
     }
     let near = false;
     const range = def.buildRadius ?? 260;
+    // the sim blocks whole nav cells (4 m) around every footprint, so compare cell ranges exactly like NavGrid.rectFree does
+    const nav = this.nav;
+    const ci0 = nav.ci(x - fw / 2 - 0.5), ci1 = nav.ci(x + fw / 2 + 0.5), cj0 = nav.ci(z - fd / 2 - 0.5), cj1 = nav.ci(z + fd / 2 + 0.5);
     for (const v of this.s.entities.views.values()) {
       const d = DEF_LIST[v.def];
       if (d.kind !== 'structure') continue;
       const [sw, sd] = d.footprint!;
       if (Math.abs(v.x - x) < (sw + fw) / 2 + 3 && Math.abs(v.z - z) < (sd + fd) / 2 + 3) return `Too close to ${d.name}`;
+      if (!(v.flags & F_GHOST) && nav.ci(v.x - sw / 2 + 0.01) <= ci1 && nav.ci(v.x + sw / 2 - 0.01) >= ci0 && nav.ci(v.z - sd / 2 + 0.01) <= cj1 && nav.ci(v.z + sd / 2 - 0.01) >= cj0) return `Too close to ${d.name}`;
       if (v.owner === this.viewer && !d.prop && !(v.flags & F_BUILDING) && (v.x - x) ** 2 + (v.z - z) ** 2 <= range * range) near = true;
     }
     return near ? null : 'Too far from your base';

@@ -448,7 +448,7 @@ function impact(sim: Sim, p: Projectile, target: Entity | undefined): void {
   if (p.kind === 1 && target && target.alive) {
     // veteran pilots: flares / evasive manoeuvres defeat the missile
     if (air && target.evade > 0 && sim.rng() < target.evade) {
-      sim.emitAt({ k: 'flare', x: target.x, y: target.y, z: target.z, owner: target.owner }, target.x, target.z);
+      sim.emitAt({ k: 'flare', x: target.x, y: target.y, z: target.z, owner: target.owner, id: target.id }, target.x, target.z);
       sim.emitAt({ k: 'boom', x: ix + (sim.rng() - 0.5) * 24, y: iy + 4, z: iz + (sim.rng() - 0.5) * 24, size: 0.7, kind: 'air' }, ix, iz);
       return;
     }

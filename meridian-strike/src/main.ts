@@ -1,3 +1,4 @@
+import { canPlace } from './sim/systems/economy';
 import './ui/styles.css';
 import { Engine, saveSettings } from './game/engine';
 import { GameSession, SessionSetup } from './game/session';
@@ -130,7 +131,7 @@ async function startGame(setup: SessionSetup): Promise<void> {
     screen.innerHTML = '';
     engine.canvas.style.visibility = 'visible';
     (window as unknown as Record<string, unknown>).__session = session;
-    (window as unknown as Record<string, unknown>).__mods = { DEF_LIST };
+    (window as unknown as Record<string, unknown>).__mods = { DEF_LIST, canPlace };
     // test/screenshot helpers: ?hour=17.5  ?cam=x,z,distance,yawDegrees
     if (params.has('hour')) { session.hour = Number(params.get('hour')); session.env.setHour(session.hour); }
     if (params.has('cam')) {

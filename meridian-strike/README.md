@@ -7,7 +7,8 @@ Browser game for desktop, built with TypeScript + Three.js. Original code, origi
 * **Skirmish** for **2–10 players**, human + AI (Easy / Medium / Hard / Brutal, 6 AI personalities), free-for-all or **teams by team number** (same number = allies, 0 = alone).
 * **5 maps**: Red Mesa (2–4), Harbor Line (2–6), Oasis Crown (2–6), Highland Pass (2–8), Grand Meridian (2–10).
 * Realistic-style graphics: hard-surface procedural models (bevelled/lofted meshes, baked ambient occlusion, per-faction camo, animated infantry legs and tank tracks), PBR terrain splat with triplanar cliffs, depth-aware water with foam, cascaded shadows, SSAO, bloom, colour grading, atmospheric haze + cloud shadows, volumetric flipbook explosions / smoke / fire with debris, decals, wrecks.
-* Everything generated in code: models, textures, sound effects, music, voice lines (browser speech synthesis).
+* Everything generated in code: models, textures, music, **layered synthesised weapon / explosion / engine / rotor sounds with distance delay, Doppler and reverb**, radio voice lines (browser speech synthesis).
+* **Veteran skills**: units rank up (Rookie → Heroic) and gain class skills — pilots dodge missiles with flares, gunners aim better, tanks self-repair.
 
 ## Play on Windows (installer)
 

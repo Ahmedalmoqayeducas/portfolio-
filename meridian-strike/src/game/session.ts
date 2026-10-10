@@ -244,6 +244,7 @@ export class GameSession {
       }
       case 'flare':
         vfx.flares(ev.x, ev.y, ev.z);
+        this.entities.dodge(ev.id, performance.now() / 1000);
         this.audio.flare(ev, this.rts.target);
         break;
       case 'promote': {

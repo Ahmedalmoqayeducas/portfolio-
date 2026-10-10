@@ -82,6 +82,8 @@ function setRY(arr: Float32Array, o: number, x: number, y: number, z: number, ry
 export class EntityRenderer {
   readonly group = new THREE.Group();
   readonly views = new Map<number, EntView>();
+  /** aircraft currently flying an evasive barrel roll: id -> start time (s) */
+  private dodges = new Map<number, number>();
   private buckets = new Map<number, Bucket>();
   private matBodies = new Map<string, THREE.MeshStandardMaterial>();
   private setupMat: (m: THREE.Material) => void;
@@ -256,6 +258,9 @@ export class EntityRenderer {
   }
 
   // ---------------------------------------------------------------- snapshots
+  /** a pilot just defeated a missile: fly a barrel roll */
+  dodge(id: number, nowSec: number): void { this.dodges.set(id, nowSec); }
+
   onSnapshot(snap: Snapshot, nowSec: number): void {
     this.snapSeq++;
     const dt = nowSec - this.lastSnapT;
@@ -341,7 +346,14 @@ export class EntityRenderer {
         v.roll += (tr - v.roll) * Math.min(1, dt * 5);
         const climb = Math.max(-0.5, Math.min(0.5, (v.y - v.py) * 4));
         v.pitch += (climb - v.pitch) * Math.min(1, dt * 4);
-        e1.set(-v.pitch * 0.6, h, v.roll, 'YXZ');
+        let spin = 0;
+        const d0 = this.dodges.get(v.id);
+        if (d0 !== undefined) {
+          const k = (nowSec - d0) / 0.9;
+          if (k >= 1) this.dodges.delete(v.id);
+          else { const e = k * k * (3 - 2 * k); spin = e * Math.PI * 2 * (v.id & 1 ? 1 : -1); y += Math.sin(k * Math.PI) * 2.5; }
+        }
+        e1.set(-v.pitch * 0.6, h, v.roll + spin, 'YXZ');
         q1.setFromEuler(e1);
         v1.set(x, y, z); v2.set(sc, sc, sc);
         m4.compose(v1, q1, v2);
