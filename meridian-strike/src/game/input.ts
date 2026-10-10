@@ -1,9 +1,10 @@
 import * as THREE from 'three';
 import type { GameSession } from './session';
 import { DEF_LIST, DEFS } from '../sim/defs';
-import { Command, Stance } from '../sim/types';
+import { Command, F_BUILDING, Stance } from '../sim/types';
 import { getModel } from '../render/models';
 import { makeUnitMaterial } from '../render/materials';
+import { fog } from '../render/fog';
 
 export type Mode =
   | { k: 'normal' }
@@ -40,6 +41,7 @@ export class InputController {
   private ghost: THREE.Group | null = null;
   private ghostRing: THREE.Mesh | null = null;
   private ghostOk = false;
+  private placeTip: HTMLDivElement | null = null;
   private cursorRing: THREE.Mesh;
   private groundPoint = new THREE.Vector3();
   private lastGround = false;
@@ -411,15 +413,31 @@ export class InputController {
     this.ghostRing = ring;
   }
 
+  /** floating reason label next to the cursor while a placement is invalid */
+  private showPlaceTip(why: string | null): void {
+    if (!why) { if (this.placeTip) this.placeTip.style.display = 'none'; return; }
+    if (!this.placeTip) {
+      const d = document.createElement('div');
+      d.style.cssText = 'position:fixed;z-index:60;pointer-events:none;padding:4px 9px;border-radius:4px;background:rgba(120,20,20,.88);color:#ffe4e0;font:600 13px Rajdhani,sans-serif;letter-spacing:.04em;border:1px solid #ff6a5a;white-space:nowrap';
+      document.body.appendChild(d);
+      this.placeTip = d;
+    }
+    this.placeTip.textContent = why;
+    this.placeTip.style.left = this.mx + 18 + 'px';
+    this.placeTip.style.top = this.my + 14 + 'px';
+    this.placeTip.style.display = 'block';
+  }
+
   private clearGhost(): void {
+    if (this.placeTip) this.placeTip.style.display = 'none';
     if (this.ghost) { this.s.scene.remove(this.ghost); this.ghost = null; }
     if (this.ghostRing) { this.s.scene.remove(this.ghostRing); this.ghostRing = null; }
   }
 
-  /** client-side approximation of the sim's placement rules (sim re-validates) */
-  placementOk(defId: string, x: number, z: number): boolean {
+  /** client-side approximation of the sim's placement rules (sim re-validates). Returns the reason it fails, or null if OK. */
+  placementWhy(defId: string, x: number, z: number): string | null {
     const def = DEFS.get(defId);
-    if (!def) return false;
+    if (!def) return 'Unknown building';
     const [fw, fd] = def.footprint!;
     const hf = this.s.terrain.hf;
     const wl = this.s.built.def.waterLevel ?? null;
@@ -427,21 +445,28 @@ export class InputController {
     for (const [ox, oz] of [[0, 0], [-1, -1], [1, -1], [-1, 1], [1, 1], [0, -1], [0, 1], [-1, 0], [1, 0]]) {
       const px = x + (ox * fw) / 2, pz = z + (oz * fd) / 2;
       const h = hf.heightAt(px, pz);
-      if (wl !== null && h < wl + 0.2) return false;
-      if (hf.slopeAt(px, pz, 2) > 0.58) return false;
+      if (wl !== null && h < wl + 0.2) return 'Cannot build on water';
       lo = Math.min(lo, h); hi = Math.max(hi, h);
     }
-    if (hi - lo > 2.4) return false;
+    if (hi - lo > 2.4) return 'Ground too uneven';
+    if (fog.on.value > 0.5 && fog.w > 0) {
+      const size = fog.size.value, gx = Math.floor(((x + size / 2) / size) * fog.w), gz = Math.floor(((z + size / 2) / size) * fog.w);
+      const data = fog.tex.image.data as Uint8Array;
+      if (gx >= 0 && gz >= 0 && gx < fog.w && gz < fog.w && data[gz * fog.w + gx] === 0) return 'Unexplored area';
+    }
     let near = false;
+    const range = def.buildRadius ?? 260;
     for (const v of this.s.entities.views.values()) {
       const d = DEF_LIST[v.def];
       if (d.kind !== 'structure') continue;
       const [sw, sd] = d.footprint!;
-      if (Math.abs(v.x - x) < (sw + fw) / 2 + 3 && Math.abs(v.z - z) < (sd + fd) / 2 + 3) return false;
-      if (v.owner === this.viewer && !d.prop && v.prog >= 1 && !(v.flags & 4) && (v.x - x) ** 2 + (v.z - z) ** 2 <= 260 * 260) near = true;
+      if (Math.abs(v.x - x) < (sw + fw) / 2 + 3 && Math.abs(v.z - z) < (sd + fd) / 2 + 3) return `Too close to ${d.name}`;
+      if (v.owner === this.viewer && !d.prop && !(v.flags & F_BUILDING) && (v.x - x) ** 2 + (v.z - z) ** 2 <= range * range) near = true;
     }
-    return near;
+    return near ? null : 'Too far from your base';
   }
+
+  placementOk(defId: string, x: number, z: number): boolean { return this.placementWhy(defId, x, z) === null; }
 
   private confirmPlace(): void {
     const m = this.mode;
@@ -450,7 +475,8 @@ export class InputController {
     const x = Math.round(this.groundPoint.x / 2) * 2, z = Math.round(this.groundPoint.z / 2) * 2;
     const ids = this.selectedOwned().filter((id) => DEF_LIST[this.s.entities.views.get(id)!.def].builds?.includes(m.def));
     if (!ids.length) { this.setMode({ k: 'normal' }); return; }
-    if (!this.placementOk(m.def, x, z)) { this.s.audio.ui('error'); this.s.hud.toast('Cannot build here'); return; }
+    const why = this.placementWhy(m.def, x, z);
+    if (why) { this.s.audio.ui('error'); this.s.hud.toast(why); return; }
     this.s.command({ t: 'build', ids, def: m.def, x, z, queue: this.shift });
     this.s.audio.ui('build');
     if (!this.shift) this.setMode({ k: 'normal' });
@@ -476,8 +502,10 @@ export class InputController {
           const y = this.s.terrain.heightAt(x, z);
           this.ghost.position.set(x, y, z);
           this.ghostRing.position.set(x, y + 0.6, z);
-          this.ghostOk = this.placementOk(m.def, x, z);
+          const why = this.placementWhy(m.def, x, z);
+          this.ghostOk = why === null;
           (this.ghostRing.material as THREE.MeshBasicMaterial).color.set(this.ghostOk ? 0x40ff60 : 0xff3a3a);
+          this.showPlaceTip(why);
           this.ghost.visible = true; this.ghostRing.visible = true;
         } else if (m.k === 'power') {
           this.cursorRing.visible = true;
@@ -485,7 +513,7 @@ export class InputController {
           this.cursorRing.scale.setScalar(m.radius);
         }
       }
-    } else if (this.ghost && this.ghostRing) { this.ghost.visible = false; this.ghostRing.visible = false; }
+    } else if (this.ghost && this.ghostRing) { this.ghost.visible = false; this.ghostRing.visible = false; if (this.placeTip) this.placeTip.style.display = 'none'; }
   }
 
   // ------------------------------------------------------------------ api for the HUD / minimap
