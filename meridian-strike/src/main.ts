@@ -131,6 +131,12 @@ async function startGame(setup: SessionSetup): Promise<void> {
     engine.canvas.style.visibility = 'visible';
     (window as unknown as Record<string, unknown>).__session = session;
     (window as unknown as Record<string, unknown>).__mods = { DEF_LIST };
+    // test/screenshot helpers: ?hour=17.5  ?cam=x,z,distance,yawDegrees
+    if (params.has('hour')) { session.hour = Number(params.get('hour')); session.env.setHour(session.hour); }
+    if (params.has('cam')) {
+      const [cx, cz, cd, cy] = String(params.get('cam')).split(',').map(Number);
+      session.rts.target.set(cx, 0, cz); session.rts.setView(cd, (cy * Math.PI) / 180);
+    }
   } catch (e) {
     console.error(e);
     alert('Failed to start: ' + (e as Error).message);

@@ -5,7 +5,8 @@ import { mkdirSync } from 'node:fs';
 
 const out = new URL('./out/', import.meta.url).pathname;
 mkdirSync(out, { recursive: true });
-const PORT = 5199;
+const PORT = Number(process.env.PORT ?? 5199);
+const VW = Number(process.env.VW ?? 1600), VH = Number(process.env.VH ?? 900);
 const server = spawn('npx', ['vite', '--port', String(PORT), '--strictPort'], { stdio: 'pipe', detached: true });
 await new Promise((res, rej) => {
   server.stdout.on('data', (d) => String(d).includes('Local') && res());
@@ -17,7 +18,7 @@ const browser = await chromium.launch({
   executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
   args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--no-sandbox'],
 });
-const page = await browser.newPage({ viewport: { width: 1600, height: 900 } });
+const page = await browser.newPage({ viewport: { width: VW, height: VH } });
 const errors = [];
 page.on('console', (m) => { if (['error', 'warning'].includes(m.type())) errors.push(`[${m.type()}] ${m.text()}`); if (process.env.VERBOSE) console.log('console:', m.text()); });
 page.on('pageerror', (e) => errors.push(`[pageerror] ${e.message}`));
