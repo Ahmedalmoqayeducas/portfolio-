@@ -11,6 +11,12 @@ on:
         default: true
   push:
     tags: ['meridian-v*']
+    # packaging changes on feature branches build the installer as a workflow artifact (no release)
+    branches: ['claude/**']
+    paths:
+      - '.github/workflows/meridian-windows.yml'
+      - 'meridian-strike/desktop/**'
+      - 'meridian-strike/package.json'
 
 permissions:
   contents: write
@@ -43,7 +49,7 @@ jobs:
           path: meridian-strike/release/*.exe
           if-no-files-found: error
       - name: Publish release
-        if: ${{ github.event_name == 'push' || inputs.release }}
+        if: ${{ github.ref_type == 'tag' || (github.event_name == 'workflow_dispatch' && inputs.release) }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_type == 'tag' && github.ref_name || format('meridian-build-{0}', github.run_number) }}
