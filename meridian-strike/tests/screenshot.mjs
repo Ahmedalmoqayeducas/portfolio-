@@ -33,7 +33,7 @@ for (const s of scenarios.length ? scenarios : defaults) {
   await page.waitForFunction(() => window.__session && window.__session.snap && window.__session.snap.tick > 30, null, { timeout: 180000 });
   await page.waitForTimeout(s.wait ?? 5000);
   if (s.js) { const r = await page.evaluate(s.js); console.log('js ->', JSON.stringify(r)); await page.waitForTimeout(s.after ?? 2500); }
-  await page.screenshot({ path: `${out}${s.name}.png` });
+  await page.screenshot({ path: `${out}${s.name}.png`, timeout: 150000 });
   const info = await page.evaluate(() => { const ss = window.__session; return { tick: ss.snap.tick, ents: ss.snap.n, simMs: ss.snap.perf.tickMs, players: ss.snap.players.map((p) => `${p.name}:${p.units}u/${p.structures}s/$${p.credits}`) }; });
   console.log('shot', s.name, JSON.stringify(info));
 }

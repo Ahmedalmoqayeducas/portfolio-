@@ -41,6 +41,12 @@ jobs:
           npx tsc --noEmit
           npx vitest run tests/sim/core.test.ts tests/render
           npx vite build
+      - name: Smoke test (Electron shell boots the game and the simulation ticks)
+        env:
+          MS_SMOKE: '1'
+          MS_WINDOWED: '1'
+          MS_QUERY: '?auto=1&spectate=1&n=2&q=low&speed=4'
+        run: npx electron . --no-sandbox --disable-gpu
       - name: Package installer
         run: npx electron-builder --win nsis --publish never
       - uses: actions/upload-artifact@v4

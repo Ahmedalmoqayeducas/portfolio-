@@ -55,6 +55,23 @@ async function serve(root) {
 
 let win = null;
 
+/** CI check (MS_SMOKE=1, MS_QUERY='?auto=1&spectate=1&n=2&q=low&speed=4'): the game must boot and the sim worker must tick */
+function runSmokeTest(w) {
+  const errors = [];
+  w.webContents.on('console-message', (_e, level, message) => { if (level >= 3) errors.push(message); });
+  const started = Date.now();
+  const poll = async () => {
+    try {
+      const r = await w.webContents.executeJavaScript('({ canvas: !!document.querySelector("canvas"), tick: window.__session && window.__session.snap ? window.__session.snap.tick : -1, gl2: !!document.createElement("canvas").getContext("webgl2") })');
+      console.log('SMOKE', JSON.stringify(r), 'errors', errors.length);
+      if (r.canvas && r.tick > 60) { console.log('SMOKE OK'); app.exit(0); return; }
+    } catch (e) { console.log('SMOKE poll failed', e.message); }
+    if (Date.now() - started > 120000) { console.log('SMOKE TIMEOUT', errors.slice(0, 5).join(' | ')); app.exit(2); return; }
+    setTimeout(poll, 3000);
+  };
+  setTimeout(poll, 5000);
+}
+
 async function createWindow() {
   const { port } = await serve(distDir());
   win = new BrowserWindow({
@@ -67,6 +84,7 @@ async function createWindow() {
   win.once('ready-to-show', () => { win.show(); if (!process.env.MS_WINDOWED) win.setFullScreen(true); });
   win.webContents.setWindowOpenHandler(({ url }) => { shell.openExternal(url); return { action: 'deny' }; });
   const q = process.env.MS_QUERY || '';
+  if (process.env.MS_SMOKE) runSmokeTest(win);
   await win.loadURL(`http://127.0.0.1:${port}/${q}`);
   // F11 = fullscreen, Ctrl+Shift+I = devtools, Ctrl+R = reload
   win.webContents.on('before-input-event', (_e, input) => {
