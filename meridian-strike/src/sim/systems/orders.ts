@@ -189,6 +189,7 @@ export function applyCommand(sim: Sim, pid: number, cmd: Command): void {
       if (!dep || !dep.def.supply) return;
       for (const u of ownedUnits(sim, pid, cmd.ids)) {
         if (!u.def.cap) continue;
+        if (!sim.nav.connected(u.x, u.z, dep.x, dep.z)) { sim.emit({ k: 'msg', text: 'Supply pile cannot be reached by ground', owner: pid }); continue; }
         u.orders.length = 0; const o = order('harvest', dep.x, dep.z, dep.id); u.orders.push(o);
       }
       break;
@@ -494,12 +495,13 @@ function nearestDropoff(sim: Sim, e: Entity): Entity | null {
   return best;
 }
 
-function nearestDepot(sim: Sim, x: number, z: number, maxR = 1100): Entity | null {
+/** closest supply pile to (x,z) that the truck can actually walk to (piles inside cliff pockets are skipped) */
+function nearestDepot(sim: Sim, x: number, z: number, from: Entity, maxR = 1100): Entity | null {
   let best: Entity | null = null, bd = maxR * maxR;
   for (const s of sim.list) {
     if (!s.alive || !s.def.supply || s.supplyLeft <= 1) continue;
     const d2 = (s.x - x) ** 2 + (s.z - z) ** 2;
-    if (d2 < bd) { bd = d2; best = s; }
+    if (d2 < bd && sim.nav.connected(from.x, from.z, s.x, s.z)) { bd = d2; best = s; }
   }
   return best;
 }
@@ -507,7 +509,7 @@ function nearestDepot(sim: Sim, x: number, z: number, maxR = 1100): Entity | nul
 function autoHarvest(sim: Sim, e: Entity): void {
   const drop = nearestDropoff(sim, e);
   if (!drop) return;
-  const dep = nearestDepot(sim, drop.x, drop.z);
+  const dep = nearestDepot(sim, drop.x, drop.z, e);
   if (!dep) return;
   e.orders.push(order('harvest', dep.x, dep.z, dep.id));
 }
@@ -519,7 +521,7 @@ function stepHarvest(sim: Sim, e: Entity, o: Order): void {
     let dep = sim.byId.get(o.target);
     if (!dep || !dep.alive || dep.supplyLeft <= 1) {
       const drop = nearestDropoff(sim, e);
-      dep = drop ? nearestDepot(sim, drop.x, drop.z) ?? undefined : undefined;
+      dep = drop ? nearestDepot(sim, drop.x, drop.z, e) ?? undefined : undefined;
       if (!dep) { if (e.cargo > 0) o.state = 2; else shift(e); return; }
       o.target = dep.id; o.x = dep.x; o.z = dep.z;
     }

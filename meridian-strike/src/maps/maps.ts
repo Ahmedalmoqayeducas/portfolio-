@@ -98,6 +98,8 @@ function redMesa(): MapDef {
   }));
   roads.push({ pts: [[-360, -360], [-360, 0], [-360, 360]], width: 20 }, { pts: [[360, -360], [360, 0], [360, 360]], width: 20 });
   roads.push({ pts: [[-360, -360], [0, -360], [360, -360]], width: 20 }, { pts: [[-360, 360], [0, 360], [360, 360]], width: 20 });
+  // the four outer supply piles sit in pockets of the canyon wall: grade a track from each to the oil field
+  for (const [x, z] of [[0, 410], [0, -410], [410, 0], [-410, 0]]) roads.push({ pts: [[x, z], [x * 0.73, z * 0.73]], width: 20 });
   return {
     id: 'red_mesa', name: 'Red Mesa', desc: 'Two-to-four player canyon duel. Terraced plateaus, graded ramps and a contested oil field in the central basin.',
     sym: 4, minPlayers: 2, maxPlayers: 4, size: 1024, res: 513, seed: 1337, biome: 'desert', hour: 15.5, cycle: 0, weather: 'none', waterLevel: null,
@@ -189,7 +191,8 @@ function highlandPass(): MapDef {
   const pads: PadDef[] = spawns.map(([x, z]) => ({ x, z, r: 88 }));
   const depots = spawns.flatMap((s) => baseDepots(s, 20000));
   for (const [x, z] of ring(8, 330, 330, 0)) depots.push([x, z, 24000]);
-  const derricks: [number, number][] = [...ring(4, 60, 60, Math.PI / 4), ...ring(8, 450, 450, 0)];
+  // outer derricks sit on each player's own valley lane (the old positions were on mountain tops no vehicle could reach)
+  const derricks: [number, number][] = [...ring(4, 60, 60, Math.PI / 4), ...ring(8, 450, 450, Math.PI / 8)];
   for (const d of depots) pads.push({ x: d[0], z: d[1], r: 16 });
   for (const d of derricks) pads.push({ x: d[0], z: d[1], r: 12 });
   const roads: RoadDef[] = spawns.map(([x, z]) => ({ pts: [[x, z], [x * 0.7, z * 0.7], [x * 0.53, z * 0.53]], width: 26 }));
@@ -198,6 +201,8 @@ function highlandPass(): MapDef {
   ringPts.push(ringPts[0]);
   roads.push({ pts: ringPts, width: 26 });
   for (const [x, z] of ring(4, 330, 330, 0)) roads.push({ pts: [[x, z], [0, 0]], width: 24 });
+  // the base supply piles sit on the flanks of the valley: grade an access track to each so trucks can reach them
+  for (const [x, z] of spawns) for (const [dx, dz] of baseDepots([x, z])) roads.push({ pts: [[x, z], [dx, dz]], width: 20 });
   const angs = spawns.map(([x, z]) => Math.atan2(z, x));
   return {
     id: 'highland_pass', name: 'Highland Pass', desc: 'Eight-player alpine valleys linked by narrow passes. Great for artillery and air; the snow never stops.',

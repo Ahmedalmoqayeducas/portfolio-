@@ -90,6 +90,47 @@ export class NavGrid {
     return true;
   }
 
+  private comp: Int32Array | null = null;
+
+  /** terrain-only connected components (4-neighbour, so "connected" is a safe promise for the path-finder) */
+  private components(): Int32Array {
+    if (this.comp) return this.comp;
+    const n = this.w * this.h;
+    const comp = new Int32Array(n).fill(-1);
+    const stack = new Int32Array(n);
+    let id = 0;
+    for (let s = 0; s < n; s++) {
+      if (comp[s] >= 0 || this.terrainBlock[s]) continue;
+      let sp = 0;
+      stack[sp++] = s; comp[s] = id;
+      while (sp) {
+        const k = stack[--sp];
+        const i = k % this.w, j = (k - i) / this.w;
+        if (i > 0 && comp[k - 1] < 0 && !this.terrainBlock[k - 1]) { comp[k - 1] = id; stack[sp++] = k - 1; }
+        if (i < this.w - 1 && comp[k + 1] < 0 && !this.terrainBlock[k + 1]) { comp[k + 1] = id; stack[sp++] = k + 1; }
+        if (j > 0 && comp[k - this.w] < 0 && !this.terrainBlock[k - this.w]) { comp[k - this.w] = id; stack[sp++] = k - this.w; }
+        if (j < this.h - 1 && comp[k + this.w] < 0 && !this.terrainBlock[k + this.w]) { comp[k + this.w] = id; stack[sp++] = k + this.w; }
+      }
+      id++;
+    }
+    return (this.comp = comp);
+  }
+
+  /** can a ground unit at (x0,z0) walk to within `reach` cells of (x1,z1)? Terrain only (structures are ignored). Used for supply piles in cliff pockets. */
+  connected(x0: number, z0: number, x1: number, z1: number, reach = 4): boolean {
+    const comp = this.components();
+    const a = this.idx(x0, z0);
+    let ca = a >= 0 ? comp[a] : -1;
+    if (ca < 0) { const f = this.nearestFree(x0, z0, 6); if (!f) return false; ca = comp[this.idx(f[0], f[1])]; }
+    const i1 = this.ci(x1), j1 = this.ci(z1);
+    for (let dj = -reach; dj <= reach; dj++) for (let di = -reach; di <= reach; di++) {
+      const i = i1 + di, j = j1 + dj;
+      if (i < 0 || j < 0 || i >= this.w || j >= this.h) continue;
+      if (comp[j * this.w + i] === ca) return true;
+    }
+    return false;
+  }
+
   /** nearest unblocked cell centre to a world position (spiral search). */
   nearestFree(x: number, z: number, maxR = 40): [number, number] | null {
     const i0 = this.ci(x), j0 = this.ci(z);

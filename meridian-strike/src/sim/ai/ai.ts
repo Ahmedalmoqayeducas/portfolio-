@@ -250,6 +250,7 @@ export class AIPlayer {
       const drops = own.structures.filter((s) => s.def.dropoff);
       for (const dep of sim.list) {
         if (!dep.alive || !dep.def.supply || dep.supplyLeft < 2000) continue;
+        if (!sim.nav.connected(sx, sz, dep.x, dep.z)) continue; // piles inside cliff pockets are useless
         if (drops.some((s) => Math.hypot(s.x - dep.x, s.z - dep.z) < 110)) continue;
         // not in enemy territory: closer to us than to any enemy spawn
         let mine = Math.hypot(dep.x - sx, dep.z - sz);
@@ -262,7 +263,7 @@ export class AIPlayer {
       }
       if (!best) {
         if (own.structures.filter((s) => s.def.dropoff).length >= 1) return null;
-        best = sim.list.find((e) => e.def.supply && Math.hypot(e.x - sx, e.z - sz) < 160) ?? null;
+        best = sim.list.find((e) => e.def.supply && Math.hypot(e.x - sx, e.z - sz) < 160 && sim.nav.connected(sx, sz, e.x, e.z)) ?? null;
         if (!best) return null;
       }
       for (let k = 0; k < 40; k++) {
