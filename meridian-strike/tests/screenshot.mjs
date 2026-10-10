@@ -19,6 +19,7 @@ const browser = await chromium.launch({
   args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--no-sandbox'],
 });
 const page = await browser.newPage({ viewport: { width: VW, height: VH } });
+await page.route(/fonts\.(googleapis|gstatic)\.com/, (r) => r.abort());
 const errors = [];
 page.on('console', (m) => { if (['error', 'warning'].includes(m.type())) errors.push(`[${m.type()}] ${m.text()}`); if (process.env.VERBOSE) console.log('console:', m.text()); });
 page.on('pageerror', (e) => errors.push(`[pageerror] ${e.message}`));

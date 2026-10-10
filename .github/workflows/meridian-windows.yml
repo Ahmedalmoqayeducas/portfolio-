@@ -1,0 +1,55 @@
+name: Meridian Strike - Windows installer
+
+# Builds MeridianStrike-Setup-<version>.exe (NSIS installer) on a Windows runner.
+# Run it from the Actions tab (Run workflow), or push a tag like  meridian-v1.1.0 .
+on:
+  workflow_dispatch:
+    inputs:
+      release:
+        description: 'Publish the installer as a GitHub Release'
+        type: boolean
+        default: true
+  push:
+    tags: ['meridian-v*']
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: meridian-strike
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: meridian-strike/package-lock.json
+      - run: npm ci
+      - name: Typecheck, sim tests, build
+        run: |
+          npx tsc --noEmit
+          npx vitest run tests/sim/core.test.ts tests/render
+          npx vite build
+      - name: Package installer
+        run: npx electron-builder --win nsis --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MeridianStrike-Windows-Setup
+          path: meridian-strike/release/*.exe
+          if-no-files-found: error
+      - name: Publish release
+        if: ${{ github.event_name == 'push' || inputs.release }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || format('meridian-build-{0}', github.run_number) }}
+          name: ${{ github.ref_type == 'tag' && github.ref_name || format('Meridian Strike build {0}', github.run_number) }}
+          body: |
+            Windows installer for Meridian Strike. Download the `.exe`, run it and choose an install folder.
+            Windows SmartScreen may warn because the installer is unsigned: click "More info" then "Run anyway".
+          files: meridian-strike/release/*.exe
+          prerelease: true

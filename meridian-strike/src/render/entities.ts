@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { DEF_LIST } from '../sim/defs';
 import { ENT_STRIDE, F_BUILDING, F_DAMAGED, F_DEPLOYED, F_GHOST, F_MOVING, F_STEALTH, F_STUNNED, F_UNPOWERED, PROJ_STRIDE, Snapshot } from '../sim/types';
 import { getModel, ModelData } from './models';
-import { makeGlowMaterial, makeTeamMaterial, makeUnitMaterial } from './materials';
+import { makeGlowMaterial, makeTeamMaterial, makeUnitMaterial, shared, UnitStyle } from './materials';
 import { patchFog } from './fog';
 import type { Vfx } from './vfx';
 import type { Terrain } from './terrain';
@@ -16,6 +16,8 @@ export interface EntView {
   hp: number; flags: number; prog: number; vet: number; ammo: number; cargo: number; speed: number; aux: number;
   seen: number;
   roll: number; pitch: number;
+  /** animation state: walk/track amount and phase */
+  aAmt: number; aPhase: number;
   // interpolated (written each frame)
   ix: number; iy: number; iz: number; ih: number; it: number;
 }
@@ -24,6 +26,8 @@ interface Part {
   mesh: THREE.InstancedMesh;
   count: number;
   cap: number;
+  /** per-instance animation (walk amount, phase) for the unit shader */
+  anim?: THREE.InstancedBufferAttribute;
 }
 
 interface Bucket {
@@ -32,6 +36,7 @@ interface Bucket {
   body: Part;
   turret?: Part;
   team?: Part;
+  teamTurret?: Part;
   glow?: Part;
   rotor?: Part;
   wreckBody?: Part;
@@ -71,7 +76,8 @@ export class EntityRenderer {
   readonly group = new THREE.Group();
   readonly views = new Map<number, EntView>();
   private buckets = new Map<number, Bucket>();
-  private matBody = makeUnitMaterial();
+  private matBodies = new Map<string, THREE.MeshStandardMaterial>();
+  private setupMat: (m: THREE.Material) => void;
   private matWreck = makeUnitMaterial({ wreck: true });
   private matTeam = makeTeamMaterial();
   private matGlow = makeGlowMaterial();
@@ -92,11 +98,8 @@ export class EntityRenderer {
   private lastProjPos = new Map<number, [number, number, number]>();
 
   constructor(private terrain: Terrain, private vfx: Vfx, setupMaterial: (m: THREE.Material) => void, scene: THREE.Scene) {
-    for (const m of [this.matBody, this.matWreck, this.matTeam]) {
-      const prev = m.onBeforeCompile;
-      m.onBeforeCompile = (sh, r) => { prev.call(m, sh, r); patchFog(sh); };
-      setupMaterial(m);
-    }
+    this.setupMat = setupMaterial;
+    for (const m of [this.matWreck, this.matTeam]) this.hookMaterial(m);
     {
       const prev = this.matGlow.onBeforeCompile;
       this.matGlow.onBeforeCompile = (sh, r) => { prev.call(this.matGlow, sh, r); patchFog(sh); };
@@ -151,27 +154,54 @@ export class EntityRenderer {
     scene.add(this.group);
   }
 
+  private hookMaterial(m: THREE.MeshStandardMaterial): void {
+    const prev = m.onBeforeCompile;
+    m.onBeforeCompile = (sh, r) => { prev.call(m, sh, r); patchFog(sh); };
+    this.setupMat(m);
+  }
+
+  private bodyMaterial(faction: string): THREE.MeshStandardMaterial {
+    const key = faction === 'usa' || faction === 'china' || faction === 'iran' ? faction : 'neutral';
+    let m = this.matBodies.get(key);
+    if (!m) { m = makeUnitMaterial({ style: key as UnitStyle }); this.hookMaterial(m); this.matBodies.set(key, m); }
+    return m;
+  }
+
   private bucket(defIdx: number): Bucket {
     let b = this.buckets.get(defIdx);
     if (b) return b;
     const def = DEF_LIST[defIdx];
     const model = getModel(def);
-    const mk = (geo: THREE.BufferGeometry, mat: THREE.Material, cast: boolean, cap = 32): Part => {
+    const matBody = this.bodyMaterial(def.faction);
+    const mk = (geo0: THREE.BufferGeometry, mat: THREE.Material, cast: boolean, cap = 32, animated = false): Part => {
+      let geo = geo0;
+      let anim: THREE.InstancedBufferAttribute | undefined;
+      if (animated) {
+        // wrapper geometry sharing the vertex buffers, so the per-instance animation attribute is private to this bucket
+        geo = new THREE.BufferGeometry();
+        for (const k of Object.keys(geo0.attributes)) geo.setAttribute(k, geo0.attributes[k]);
+        geo.setIndex(geo0.index);
+        geo.boundingSphere = geo0.boundingSphere; geo.boundingBox = geo0.boundingBox;
+        anim = new THREE.InstancedBufferAttribute(new Float32Array(cap * 2), 2).setUsage(THREE.DynamicDrawUsage);
+        geo.setAttribute('aAnim', anim);
+      }
       const mesh = new THREE.InstancedMesh(geo, mat, cap);
       mesh.count = 0; mesh.frustumCulled = false; mesh.castShadow = cast; mesh.receiveShadow = true;
       mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
       this.group.add(mesh);
-      return { mesh, count: 0, cap };
+      return { mesh, count: 0, cap, anim };
     };
     b = {
       defIdx, model, structure: def.kind === 'structure', air: def.layer === 'air', radius: def.radius,
-      body: mk(model.body, this.matBody, true),
-      turret: model.turret ? mk(model.turret, this.matBody, true) : undefined,
+      body: mk(model.body, matBody, true, 32, !!model.animated),
+      turret: model.turret ? mk(model.turret, matBody, true) : undefined,
       team: model.team ? mk(model.team, this.matTeam, false) : undefined,
+      teamTurret: model.teamTurret ? mk(model.teamTurret, this.matTeam, false) : undefined,
       glow: model.glow ? mk(model.glow, this.matGlow, false) : undefined,
-      rotor: model.rotor ? mk(model.rotor, this.matBody, true) : undefined,
+      rotor: model.rotor ? mk(model.rotor, matBody, true) : undefined,
     };
     if (b.team) { (b.team.mesh as THREE.InstancedMesh).setColorAt(0, col.set(0xffffff)); }
+    if (b.teamTurret) { (b.teamTurret.mesh as THREE.InstancedMesh).setColorAt(0, col.set(0xffffff)); }
     this.buckets.set(defIdx, b);
     return b;
   }
@@ -180,6 +210,12 @@ export class EntityRenderer {
     if (need <= part.cap) return;
     const cap = Math.max(need, part.cap * 2);
     const old = part.mesh;
+    if (part.anim) {
+      const na = new THREE.InstancedBufferAttribute(new Float32Array(cap * 2), 2).setUsage(THREE.DynamicDrawUsage);
+      na.array.set(part.anim.array);
+      old.geometry.setAttribute('aAnim', na);
+      part.anim = na;
+    }
     const mesh = new THREE.InstancedMesh(old.geometry, old.material, cap);
     mesh.frustumCulled = false; mesh.castShadow = old.castShadow; mesh.receiveShadow = old.receiveShadow;
     mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -205,7 +241,7 @@ export class EntityRenderer {
         v = {
           id, def: a[o + 1], owner: a[o + 2], x: a[o + 3], y: a[o + 4], z: a[o + 5], h: a[o + 6], t: a[o + 7],
           px: a[o + 3], py: a[o + 4], pz: a[o + 5], ph: a[o + 6], pt: a[o + 7],
-          hp: 1, flags: 0, prog: 1, vet: 0, ammo: 1, cargo: 0, speed: 0, aux: 0, seen: 0, roll: 0, pitch: 0,
+          hp: 1, flags: 0, prog: 1, vet: 0, ammo: 1, cargo: 0, speed: 0, aux: 0, seen: 0, roll: 0, pitch: 0, aAmt: 0, aPhase: id * 1.7,
           ix: 0, iy: 0, iz: 0, ih: 0, it: 0,
         };
         this.views.set(id, v);
@@ -237,6 +273,7 @@ export class EntityRenderer {
       b.body.count = 0;
       if (b.turret) b.turret.count = 0;
       if (b.team) b.team.count = 0;
+      if (b.teamTurret) b.teamTurret.count = 0;
       if (b.glow) b.glow.count = 0;
       if (b.rotor) b.rotor.count = 0;
       if (b.wreckBody) b.wreckBody.count = 0;
@@ -246,6 +283,7 @@ export class EntityRenderer {
     const barArr = this.barAttr.array as Float32Array;
     const ringMat = this.ringMesh.instanceMatrix.array as Float32Array;
     const barMat = this.barMesh.instanceMatrix.array as Float32Array;
+    shared.time.value = nowSec;
     const glowI = this.nightGlow;
     (this.matGlow.color as THREE.Color).setScalar(glowI);
 
@@ -290,12 +328,28 @@ export class EntityRenderer {
 
       // body
       this.putRY(b.body, x, y, z, h, sc, sy, sc);
+      if (b.body.anim) {
+        const moving = (v.flags & F_MOVING) !== 0;
+        const kind = b.model.animated;
+        if (kind === 'walker') {
+          v.aAmt += ((moving ? Math.min(1, 0.35 + v.speed / 5) : 0) - v.aAmt) * Math.min(1, dt * 8);
+          v.aPhase += dt * (7 + v.speed * 1.3) * (moving ? 1 : 0.0);
+        } else {
+          v.aAmt += ((moving ? 1 : 0) - v.aAmt) * Math.min(1, dt * 6);
+          v.aPhase += dt * v.speed * 5.45;
+        }
+        const ai = (b.body.count - 1) * 2;
+        const aa = b.body.anim.array as Float32Array;
+        aa[ai] = v.aAmt; aa[ai + 1] = v.aPhase;
+      }
       if (b.team) this.putTeamRY(b.team, x, y, z, h, sc, sy, sc, v.owner, ghost);
       if (b.glow) this.putRY(b.glow, x, y, z, h, sc, sy, sc);
       if (b.turret && b.model.turretPivot) {
         const p = b.model.turretPivot;
         const c = Math.cos(h), s = Math.sin(h);
-        this.putRY(b.turret, x + (c * p[0] + s * p[2]) * sc, y + p[1] * sy, z + (-s * p[0] + c * p[2]) * sc, v.it, sc, sy, sc);
+        const tx = x + (c * p[0] + s * p[2]) * sc, ty = y + p[1] * sy, tz = z + (-s * p[0] + c * p[2]) * sc;
+        this.putRY(b.turret, tx, ty, tz, v.it, sc, sy, sc);
+        if (b.teamTurret) this.putTeamRY(b.teamTurret, tx, ty, tz, v.it, sc, sy, sc, v.owner, ghost);
       }
       if (b.rotor && b.model.rotorPivot) {
         const p = b.model.rotorPivot;
@@ -369,6 +423,8 @@ export class EntityRenderer {
       this.commit(b.body);
       if (b.turret) this.commit(b.turret);
       if (b.team) { this.commit(b.team); if (b.team.mesh.instanceColor) b.team.mesh.instanceColor.needsUpdate = true; }
+      if (b.teamTurret) { this.commit(b.teamTurret); if (b.teamTurret.mesh.instanceColor) b.teamTurret.mesh.instanceColor.needsUpdate = true; }
+      if (b.body.anim) b.body.anim.needsUpdate = true;
       if (b.glow) this.commit(b.glow);
       if (b.rotor) this.commit(b.rotor);
       if (b.wreckBody) this.commit(b.wreckBody);

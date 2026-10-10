@@ -35,15 +35,16 @@ export function getIcon(defId: string, color = 0xffffff): string {
     if (!def) return '';
     const model = getModel(def);
     const g = new THREE.Group();
-    const matB = makeUnitMaterial();
+    const matB = makeUnitMaterial({ style: (def.faction === 'usa' || def.faction === 'china' || def.faction === 'iran' ? def.faction : 'neutral') });
     const matT = makeTeamMaterial();
     matT.color.set(color);
     const body = new THREE.Mesh(model.body, matB);
     g.add(body);
-    if (model.turret && model.turretPivot) { const t = new THREE.Mesh(model.turret, matB); t.position.set(...model.turretPivot); g.add(t); }
+    if (model.turret && model.turretPivot) { const t = new THREE.Mesh(model.turret, matB); t.position.set(...model.turretPivot); g.add(t); if (model.teamTurret) { const tt = new THREE.Mesh(model.teamTurret, matT); tt.position.set(...model.turretPivot); g.add(tt); } }
     if (model.team) { g.add(new THREE.Mesh(model.team, matT)); }
     if (model.glow) { const gm = makeGlowMaterial(); gm.color.setScalar(0.35); g.add(new THREE.Mesh(model.glow, gm)); }
     if (model.rotor && model.rotorPivot) { const r = new THREE.Mesh(model.rotor, matB); r.position.set(...model.rotorPivot); g.add(r); }
+    if (model.rotor2 && model.rotor2Pivot) { const r2 = new THREE.Mesh(model.rotor2, matB); r2.position.set(...model.rotor2Pivot); g.add(r2); }
     const box = new THREE.Box3().setFromObject(g);
     const size = box.getSize(new THREE.Vector3());
     const ctr = box.getCenter(new THREE.Vector3());
