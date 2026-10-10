@@ -1,0 +1,69 @@
+name: Meridian Strike - Windows installer
+
+# Builds MeridianStrike-Setup-<version>.exe (NSIS installer) on a Windows runner.
+# Builds on packaging changes; publishes a GitHub Release when the commit message contains [release],
+# when a tag like meridian-v1.1.0 is pushed, or when started manually with "Publish release" ticked.
+on:
+  workflow_dispatch:
+    inputs:
+      release:
+        description: 'Publish the installer as a GitHub Release'
+        type: boolean
+        default: true
+  push:
+    tags: ['meridian-v*']
+    # packaging changes on feature branches build the installer as a workflow artifact (no release)
+    branches: ['claude/**']
+    paths:
+      - '.github/workflows/meridian-windows.yml'
+      - 'meridian-strike/desktop/**'
+      - 'meridian-strike/package.json'
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: meridian-strike
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: meridian-strike/package-lock.json
+      - run: npm ci
+      - name: Typecheck, sim tests, build
+        run: |
+          npx tsc --noEmit
+          npx vitest run tests/sim/core.test.ts tests/render
+          npx vite build
+      - name: Smoke test (Electron shell boots the game and the simulation ticks)
+        env:
+          MS_SMOKE: '1'
+          MS_WINDOWED: '1'
+          MS_QUERY: '?auto=1&spectate=1&n=2&q=low&speed=4'
+        run: npx electron . --no-sandbox --disable-gpu
+      - name: Package installer
+        run: npx electron-builder --win nsis --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MeridianStrike-Windows-Setup
+          path: meridian-strike/release/*.exe
+          if-no-files-found: error
+      - name: Publish release
+        if: ${{ github.ref_type == 'tag' || (github.event_name == 'workflow_dispatch' && inputs.release) || contains(github.event.head_commit.message, '[release]') }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || format('meridian-build-{0}', github.run_number) }}
+          target_commitish: ${{ github.sha }}
+          name: ${{ github.ref_type == 'tag' && github.ref_name || format('Meridian Strike build {0}', github.run_number) }}
+          body: |
+            Windows installer for Meridian Strike. Download the `.exe`, run it and choose an install folder.
+            Windows SmartScreen may warn because the installer is unsigned: click "More info" then "Run anyway".
+          files: meridian-strike/release/*.exe
+          prerelease: true
