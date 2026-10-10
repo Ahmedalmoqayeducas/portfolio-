@@ -142,7 +142,7 @@ function soldier(k: Kit, tk: Kit, x: number, z: number, yaw: number, p: Palette,
 const infantry: Builder = ({ spec, pal, style, id }) => {
   const n = num(spec.n, 3);
   const kit = String(spec.kit ?? 'rifle');
-  const k = new Kit({ camo: 0.4, grime: 0.3, seed: seedOf(id), bevelMax: 0.03, ground: true });
+  const k = new Kit({ camo: 0.4, grime: 0.3, seed: seedOf(id), bevelMax: 0.03, ground: false });
   const tk = new Kit({ seed: 4, ground: false });
   const R = n <= 1 ? 0 : 0.85 + n * 0.2;
   for (let i = 0; i < n; i++) {
@@ -811,6 +811,17 @@ export function getModel(def: EntityDef): ModelData {
   }
   cache.set(def.id, m);
   return m;
+}
+
+/** build (and bake AO for) every model of the given factions up front so first-sight hitches never happen mid-game */
+export async function prebuildModels(defs: EntityDef[], onProgress?: (done: number, total: number) => void): Promise<void> {
+  let n = 0;
+  for (const d of defs) {
+    getModel(d);
+    n++;
+    onProgress?.(n, defs.length);
+    if (n % 3 === 0) await new Promise((r) => setTimeout(r, 0));
+  }
 }
 
 export function registerModelBuilder(name: string, b: Builder): void { BUILDERS[name] = b; }

@@ -8,6 +8,7 @@ import { PostStack } from '../render/post';
 import { makeProps } from '../render/props';
 import { Vfx } from '../render/vfx';
 import { EntityRenderer } from '../render/entities';
+import { prebuildModels } from '../render/models';
 import { setupFog, updateFog, fog } from '../render/fog';
 import { RtsCamera } from '../engine/rtsCamera';
 import { PerfOverlay } from '../ui/perf';
@@ -68,15 +69,15 @@ export class GameSession {
     const def = this.built.def;
     this.speed = setup.options.speed;
     this.hour = def.hour;
-    this.terrain = new Terrain(this.built);
-    this.scene.add(this.terrain.mesh);
+    this.terrain = new Terrain(this.built, r, engine.settings.quality);
+    this.scene.add(this.terrain.group);
     if (this.terrain.water) this.scene.add(this.terrain.water);
     this.rts = new RtsCamera(engine.canvas, this.terrain);
     this.rts.edgePan = engine.settings.edgePan;
-    this.env = new Environment(r, this.scene, this.rts.camera);
+    this.env = new Environment(r, this.scene, this.rts.camera, def);
     this.env.setupMaterial(this.terrain.mesh.material as THREE.Material);
     if (this.terrain.water) this.env.setupMaterial(this.terrain.water.material as THREE.Material);
-    const props = makeProps(this.built);
+    const props = makeProps(this.built, this.terrain);
     this.scene.add(props.group);
     for (const m of props.materials) this.env.setupMaterial(m);
     this.vfx = new Vfx(this.terrain, this.scene);
@@ -103,13 +104,16 @@ export class GameSession {
     this.applyQuality();
     this.env.setHour(this.hour);
     this.vfx.setDaylight(this.env.daylight);
+    this.vfx.setSun(this.env.sun, this.env.daylight);
     window.addEventListener('resize', this.onResize);
   }
 
   applyQuality(): void {
     const s = this.engine.settings;
     const r = this.post.setPreset(s.quality);
-    this.env.setShadows(r.shadows && s.shadows);
+    this.vfx.setQuality(s.quality);
+    this.env.setShadows(r.shadows && s.shadows, r.shadowSize);
+    this.terrain.setQuality(s.quality);
     this.pixelRatio = Math.max(0.5, r.pixelRatio * s.resolution);
     this.onResize();
   }
@@ -127,6 +131,9 @@ export class GameSession {
       map: this.setup.map, heights: this.built.hf.data, seed: this.simSeed,
       players: this.setup.players, options: this.setup.options, replay: this.setup.replay,
     };
+    const fac = new Set<string>(['neutral']);
+    for (const pl of this.setup.players) fac.add(pl.faction);
+    await prebuildModels(DEF_LIST.filter((d) => fac.has(d.faction)));
     await this.host.start(init);
     this.hud = new Hud(this);
     this.input = new InputController(this);
@@ -278,6 +285,7 @@ export class GameSession {
       if (nowS > w.until) { this.warnRings.splice(i, 1); continue; }
       if (nowS >= w.next) { w.next = nowS + 0.7; this.vfx.shocks.add(w.x, this.terrain.heightAt(w.x, w.z) + 0.6, w.z, w.r, 0.7, 0xff5a3a); }
     }
+    this.vfx.setSun(this.env.sun, this.env.daylight);
     this.vfx.update(dt);
     this.hud?.frame(dt);
     this.audio.listenerYaw = this.rts.yaw;

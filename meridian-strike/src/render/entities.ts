@@ -39,6 +39,7 @@ interface Bucket {
   teamTurret?: Part;
   glow?: Part;
   rotor?: Part;
+  rotor2?: Part;
   wreckBody?: Part;
   wreckTurret?: Part;
   radius: number;
@@ -55,6 +56,12 @@ const e1 = new THREE.Euler();
 const v1 = new THREE.Vector3();
 const v2 = new THREE.Vector3();
 const AXY = new THREE.Vector3(0, 1, 0);
+const AXX = new THREE.Vector3(1, 0, 0);
+const AXZ = new THREE.Vector3(0, 0, 1);
+const v3 = new THREE.Vector3();
+const v4 = new THREE.Vector3();
+const mLoc = new THREE.Matrix4();
+const mWorld = new THREE.Matrix4();
 const col = new THREE.Color();
 
 function lerpAngle(a: number, b: number, t: number): number {
@@ -199,6 +206,7 @@ export class EntityRenderer {
       teamTurret: model.teamTurret ? mk(model.teamTurret, this.matTeam, false) : undefined,
       glow: model.glow ? mk(model.glow, this.matGlow, false) : undefined,
       rotor: model.rotor ? mk(model.rotor, matBody, true) : undefined,
+      rotor2: model.rotor2 ? mk(model.rotor2, matBody, true) : undefined,
     };
     if (b.team) { (b.team.mesh as THREE.InstancedMesh).setColorAt(0, col.set(0xffffff)); }
     if (b.teamTurret) { (b.teamTurret.mesh as THREE.InstancedMesh).setColorAt(0, col.set(0xffffff)); }
@@ -276,6 +284,7 @@ export class EntityRenderer {
       if (b.teamTurret) b.teamTurret.count = 0;
       if (b.glow) b.glow.count = 0;
       if (b.rotor) b.rotor.count = 0;
+      if (b.rotor2) b.rotor2.count = 0;
       if (b.wreckBody) b.wreckBody.count = 0;
       if (b.wreckTurret) b.wreckTurret.count = 0;
     }
@@ -314,14 +323,8 @@ export class EntityRenderer {
         m4.compose(v1, q1, v2);
         this.put(b.body, m4);
         if (b.team) this.putTeam(b.team, m4, v.owner);
-        if (b.rotor) {
-          const piv = b.model.rotorPivot!;
-          q2.setFromAxisAngle(AXY, nowSec * (b.model.rotorSpeed ?? 20) + v.id);
-          m4.compose(v1, q1, v2);
-          const loc = new THREE.Matrix4().compose(v1.set(piv[0], piv[1], piv[2]), q2, new THREE.Vector3(1, 1, 1));
-          if (b.model.rotorAxis === 'z') loc.compose(v1.set(piv[0], piv[1], piv[2]), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), nowSec * (b.model.rotorSpeed ?? 20)), new THREE.Vector3(1, 1, 1));
-          this.put(b.rotor, new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), q1, new THREE.Vector3(sc, sc, sc)).multiply(loc));
-        }
+        if (b.rotor) this.spinner(b.rotor, b.model.rotorPivot!, b.model.rotorAxis ?? 'y', nowSec * (b.model.rotorSpeed ?? 20) + v.id, q1, x, y, z, sc);
+        if (b.rotor2 && b.model.rotor2Pivot) this.spinner(b.rotor2, b.model.rotor2Pivot, b.model.rotor2Axis ?? 'x', nowSec * (b.model.rotor2Speed ?? 30) + v.id, q1, x, y, z, sc);
         if (v.hp < 0.5 && Math.random() < dt * 14) this.vfx.trail(x, y, z, 'shell');
         continue;
       }
@@ -427,6 +430,7 @@ export class EntityRenderer {
       if (b.body.anim) b.body.anim.needsUpdate = true;
       if (b.glow) this.commit(b.glow);
       if (b.rotor) this.commit(b.rotor);
+      if (b.rotor2) this.commit(b.rotor2);
       if (b.wreckBody) this.commit(b.wreckBody);
       if (b.wreckTurret) this.commit(b.wreckTurret);
     }
@@ -439,6 +443,14 @@ export class EntityRenderer {
   private ringColor(i: number, c: number): void {
     col.set(c);
     this.ringMesh.setColorAt(i, col);
+  }
+
+  /** a spinning sub-mesh (rotor blades) rotating about `axis` at model-space pivot `piv` of an aircraft transformed by (x,y,z,base,sc) */
+  private spinner(part: Part, piv: [number, number, number], axis: 'x' | 'y' | 'z', angle: number, base: THREE.Quaternion, x: number, y: number, z: number, sc: number): void {
+    q2.setFromAxisAngle(axis === 'x' ? AXX : axis === 'z' ? AXZ : AXY, angle);
+    mLoc.compose(v3.set(piv[0], piv[1], piv[2]), q2, v4.set(1, 1, 1));
+    mWorld.compose(v1.set(x, y, z), base, v2.set(sc, sc, sc)).multiply(mLoc);
+    this.put(part, mWorld);
   }
 
   private put(part: Part, m: THREE.Matrix4): void {

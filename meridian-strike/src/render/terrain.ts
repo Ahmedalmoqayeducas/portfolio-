@@ -1,199 +1,178 @@
 import * as THREE from 'three';
-import { Noise2D } from '../procgen/noise';
-import type { BuiltMap, Biome } from '../maps/maps';
-import { patchFog } from './fog';
+import type { BuiltMap } from '../maps/maps';
+import type { Preset } from './post';
+import { buildLayerSet, LayerSet } from './terrainTex';
+import { buildTerrainMaps, TerrainMaps } from './terrainData';
+import { makeTerrainMaterial } from './terrainShader';
+import { buildRingGeometry } from './ring';
+import { makeWater } from './water';
 
 const smooth = (a: number, b: number, x: number) => {
   const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
   return t * t * (3 - 2 * t);
 };
 
-interface Pal { a: THREE.Color; b: THREE.Color; rock: THREE.Color; rock2: THREE.Color; scrub: THREE.Color; road: THREE.Color; wet: THREE.Color }
-const C = (r: number, g: number, b: number) => new THREE.Color(r, g, b);
-
-const PALETTES: Record<Biome, Pal> = {
-  desert: { a: C(0.62, 0.4, 0.22), b: C(0.74, 0.52, 0.3), rock: C(0.36, 0.17, 0.1), rock2: C(0.2, 0.12, 0.09), scrub: C(0.34, 0.33, 0.15), road: C(0.34, 0.27, 0.2), wet: C(0.3, 0.2, 0.12) },
-  urban: { a: C(0.3, 0.3, 0.17), b: C(0.4, 0.36, 0.2), rock: C(0.3, 0.29, 0.27), rock2: C(0.18, 0.18, 0.18), scrub: C(0.2, 0.3, 0.12), road: C(0.1, 0.1, 0.11), wet: C(0.55, 0.47, 0.32) },
-  oasis: { a: C(0.7, 0.5, 0.28), b: C(0.8, 0.62, 0.38), rock: C(0.4, 0.26, 0.17), rock2: C(0.24, 0.17, 0.12), scrub: C(0.17, 0.32, 0.08), road: C(0.38, 0.29, 0.2), wet: C(0.28, 0.2, 0.12) },
-  highland: { a: C(0.82, 0.86, 0.9), b: C(0.9, 0.93, 0.97), rock: C(0.32, 0.32, 0.34), rock2: C(0.2, 0.2, 0.22), scrub: C(0.16, 0.22, 0.14), road: C(0.35, 0.34, 0.33), wet: C(0.4, 0.4, 0.42) },
-  mixed: { a: C(0.55, 0.42, 0.25), b: C(0.68, 0.54, 0.32), rock: C(0.34, 0.26, 0.2), rock2: C(0.2, 0.16, 0.13), scrub: C(0.2, 0.32, 0.1), road: C(0.12, 0.12, 0.13), wet: C(0.3, 0.22, 0.14) },
-};
-
+/**
+ * Heightfield terrain: tiled mesh (per-tile frustum / shadow culling) with a procedural PBR splat material,
+ * a distant mountain ring that fades into the haze, and the water surface.
+ *
+ * `mesh` is the first tile (kept for API compatibility, all tiles share its material); add `group` to the scene.
+ */
 export class Terrain {
   readonly mesh: THREE.Mesh;
+  readonly group = new THREE.Group();
   readonly water: THREE.Mesh | null;
   readonly hf;
   readonly size: number;
   readonly built: BuiltMap;
-  private waterNormal: THREE.Texture | null = null;
+  readonly maps: TerrainMaps;
+  readonly layers: LayerSet;
+  readonly material: THREE.MeshStandardMaterial;
+  readonly ring: THREE.Mesh;
+  private readonly tiles: THREE.Mesh[] = [];
 
-  constructor(built: BuiltMap) {
+  constructor(built: BuiltMap, renderer: THREE.WebGLRenderer, quality: Preset = 'ultra') {
     this.built = built;
     this.hf = built.hf;
     this.size = built.hf.size;
-    this.mesh = this.buildMesh();
-    this.water = this.buildWater();
+    const { def, hf } = built;
+
+    const texSize = quality === 'ultra' || quality === 'high' ? 1024 : 512;
+    this.layers = buildLayerSet(renderer, def.biome, texSize);
+    this.maps = buildTerrainMaps(renderer, built, quality);
+    this.material = makeTerrainMaterial({
+      layers: this.layers, maps: this.maps, macro: this.maps.macro, biome: def.biome, size: hf.size, waterLevel: def.waterLevel ?? null,
+    });
+
+    // ---- mesh: shared vertex buffers, one index buffer per tile
+    const N = hf.res;
+    const half = hf.size / 2;
+    const step = hf.step;
+    const rh = this.renderHeights();
+    const pos = new Float32Array(N * N * 3);
+    const nrm = new Float32Array(N * N * 3);
+    for (let j = 0; j < N; j++) {
+      for (let i = 0; i < N; i++) {
+        const k = j * N + i;
+        pos[k * 3] = i * step - half; pos[k * 3 + 1] = rh[k]; pos[k * 3 + 2] = j * step - half;
+        const il = Math.max(0, i - 1), ir = Math.min(N - 1, i + 1), jd = Math.max(0, j - 1), ju = Math.min(N - 1, j + 1);
+        const dx = (rh[j * N + ir] - rh[j * N + il]) / ((ir - il) * step);
+        const dz = (rh[ju * N + i] - rh[jd * N + i]) / ((ju - jd) * step);
+        const l = Math.hypot(dx, 1, dz);
+        nrm[k * 3] = -dx / l; nrm[k * 3 + 1] = 1 / l; nrm[k * 3 + 2] = -dz / l;
+      }
+    }
+    const posAttr = new THREE.BufferAttribute(pos, 3);
+    const nrmAttr = new THREE.BufferAttribute(nrm, 3);
+    const per = 64;
+    const nt = Math.ceil((N - 1) / per);
+    const raw = hf.data;
+    for (let tz = 0; tz < nt; tz++) {
+      for (let tx = 0; tx < nt; tx++) {
+        const i0 = tx * per, i1 = Math.min(N - 1, i0 + per), j0 = tz * per, j1 = Math.min(N - 1, j0 + per);
+        const w = i1 - i0, h = j1 - j0;
+        const idx = new Uint32Array(w * h * 6);
+        let o = 0;
+        let ymin = 1e9, ymax = -1e9;
+        for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) { const y = rh[j * N + i]; if (y < ymin) ymin = y; if (y > ymax) ymax = y; }
+        for (let j = j0; j < j1; j++) {
+          for (let i = i0; i < i1; i++) {
+            const a = j * N + i, b = a + 1, c = a + N, d = c + 1;
+            if (Math.abs(raw[a] - raw[d]) < Math.abs(raw[b] - raw[c])) { idx[o++] = a; idx[o++] = c; idx[o++] = d; idx[o++] = a; idx[o++] = d; idx[o++] = b; }
+            else { idx[o++] = a; idx[o++] = c; idx[o++] = b; idx[o++] = b; idx[o++] = c; idx[o++] = d; }
+          }
+        }
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', posAttr);
+        geo.setAttribute('normal', nrmAttr);
+        geo.setIndex(new THREE.BufferAttribute(idx, 1));
+        const box = new THREE.Box3(new THREE.Vector3(i0 * step - half, ymin, j0 * step - half), new THREE.Vector3(i1 * step - half, ymax, j1 * step - half));
+        geo.boundingBox = box;
+        geo.boundingSphere = box.getBoundingSphere(new THREE.Sphere());
+        const m = new THREE.Mesh(geo, this.material);
+        m.castShadow = true; m.receiveShadow = true;
+        m.name = `terrain-${tx}-${tz}`;
+        this.tiles.push(m);
+        this.group.add(m);
+      }
+    }
+    this.mesh = this.tiles[0];
+
+    // ---- distant ring
+    const ringMat = makeTerrainMaterial({
+      layers: this.layers, macro: this.maps.macro, biome: def.biome, size: hf.size, waterLevel: def.waterLevel ?? null, ring: true,
+    });
+    this.ring = new THREE.Mesh(buildRingGeometry(built), ringMat);
+    this.ring.castShadow = false; this.ring.receiveShadow = false;
+    this.ring.name = 'terrain-ring';
+    this.ring.userData.noAO = true;
+    this.group.add(this.ring);
+
+    // ---- water
+    const wl = def.waterLevel;
+    if (wl === null || wl === undefined) this.water = null;
+    else {
+      const oasis = def.biome === 'oasis';
+      this.water = makeWater({
+        size: hf.size, level: wl, heights: this.maps.height, res: N, step,
+        shallow: oasis ? 0x3fb09a : 0x3f9690, deep: oasis ? 0x0b4e55 : 0x0a3d58,
+      });
+    }
+    this.setQuality(quality);
   }
 
   heightAt(x: number, z: number): number { return this.hf.heightAt(x, z); }
 
-  private buildMesh(): THREE.Mesh {
-    const { def, hf, roadMask } = this.built;
-    const N = hf.res;
-    const geo = new THREE.PlaneGeometry(hf.size, hf.size, N - 1, N - 1);
-    geo.rotateX(-Math.PI / 2);
-    const pos = geo.attributes.position as THREE.BufferAttribute;
-    for (let k = 0; k < pos.count; k++) pos.setY(k, hf.data[k]);
-    geo.computeVertexNormals();
-    const nrm = geo.attributes.normal as THREE.BufferAttribute;
-    const colors = new Float32Array(pos.count * 3);
-    const pal = PALETTES[def.biome];
-    const n = new Noise2D(def.seed + 9);
-    const tmp = new THREE.Color();
-    const wl = def.waterLevel ?? -1e9;
-    for (let k = 0; k < pos.count; k++) {
-      const x = pos.getX(k), y = pos.getY(k), z = pos.getZ(k);
-      const slope = 1 - nrm.getY(k);
-      const mottle = n.fbm(x * 0.012 + 40, z * 0.012, 4) * 0.5 + 0.5;
-      tmp.copy(pal.a).lerp(pal.b, mottle);
-      const r = Math.hypot(x, z);
-      const green = this.greenness(def.biome, x, z, y, r, n);
-      if (green > 0) tmp.lerp(pal.scrub, Math.min(1, green) * (1 - smooth(0.05, 0.22, slope)));
-      const strata = Math.sin(y * 0.85 + n.noise(x * 0.01, z * 0.01) * 3) * 0.5 + 0.5;
-      const rk = pal.rock.clone().lerp(pal.rock2, strata * 0.6);
-      if (def.biome === 'highland') {
-        // snow on flats, rock on cliffs, gravel in valley floors
-        const snowy = smooth(0.04, 0.5, 1 - slope * 2.2) * smooth(3, 22, y + n.fbm(x * 0.03, z * 0.03, 2) * 14);
-        tmp.copy(pal.rock2).lerp(pal.a, 0.4 + 0.6 * snowy).lerp(pal.b, mottle * snowy);
-        tmp.lerp(rk, smooth(0.18, 0.5, slope));
-      } else {
-        tmp.lerp(rk, smooth(0.07, 0.3, slope));
+  /** vegetation density 0..1 at a point (from the control map) */
+  vegAt(x: number, z: number): number { return this.ctl(x, z, 0); }
+  /** channel of the CPU control map: 0 veg, 1 dirt, 2 pad, 3 concrete */
+  ctl(x: number, z: number, ch: number): number {
+    const N = this.maps.res;
+    const gx = Math.min(N - 1, Math.max(0, Math.round((x + this.size / 2) / this.hf.step)));
+    const gz = Math.min(N - 1, Math.max(0, Math.round((z + this.size / 2) / this.hf.step)));
+    return this.maps.ctlData[(gz * N + gx) * 4 + ch] / 255;
+  }
+
+  private qListeners: ((q: Preset) => void)[] = [];
+  private curQuality: Preset = 'high';
+  /** subscribe to quality changes (props thin out on low presets); fires immediately */
+  onQuality(fn: (q: Preset) => void): void { this.qListeners.push(fn); fn(this.curQuality); }
+
+  setQuality(p: Preset): void {
+    this.curQuality = p;
+    for (const fn of this.qListeners) fn(p);
+    const u = this.material.userData.uniforms as Record<string, THREE.IUniform>;
+    const v = u.uQ.value as THREE.Vector4;
+    v.x = p === 'low' ? 0 : 1;
+    v.y = p === 'low' ? 0 : 1;
+    const ru = this.ring.material as THREE.MeshStandardMaterial;
+    const uq = (ru.userData.uniforms as Record<string, THREE.IUniform>).uQ.value as THREE.Vector4;
+    uq.x = p === 'low' || p === 'medium' ? 0 : 1; uq.y = v.y;
+    for (const t of this.tiles) t.castShadow = true;
+  }
+
+  /** hook kept for API compatibility (water / clouds animate from the shared atmosphere clock) */
+  update(_time: number): void { /* animated by shared uniforms */ }
+
+  /** render-only heights: steep faces get a light low-pass so cliffs do not show grid sawtooth */
+  private renderHeights(): Float32Array {
+    const { hf } = this;
+    const N = hf.res, step = hf.step;
+    let src = hf.data;
+    for (let pass = 0; pass < 2; pass++) {
+      const dst = new Float32Array(src);
+      for (let j = 1; j < N - 1; j++) {
+        for (let i = 1; i < N - 1; i++) {
+          const k = j * N + i;
+          const dx = (src[k + 1] - src[k - 1]) / (2 * step), dz = (src[k + N] - src[k - N]) / (2 * step);
+          const w = smooth(0.55, 1.4, Math.hypot(dx, dz)) * 0.8;
+          if (w < 0.01) continue;
+          const avg = (src[k - N - 1] + src[k - N] + src[k - N + 1] + src[k - 1] + src[k] + src[k + 1] + src[k + N - 1] + src[k + N] + src[k + N + 1]) / 9;
+          dst[k] = src[k] * (1 - w) + avg * w;
+        }
       }
-      // shore
-      if (def.waterLevel !== null) {
-        const sd = y - wl;
-        tmp.lerp(pal.wet, (1 - smooth(0.2, 2.8, sd)) * 0.85);
-        if (sd < 0) tmp.multiplyScalar(0.55);
-      }
-      const road = roadMask[k] / 255;
-      if (road > 0.02) tmp.lerp(pal.road, smooth(0.3, 0.75, road) * 0.9);
-      tmp.multiplyScalar(0.9 + 0.2 * mottle);
-      colors[k * 3] = tmp.r; colors[k * 3 + 1] = tmp.g; colors[k * 3 + 2] = tmp.b;
+      src = dst;
     }
-    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    const detail = makeDetailTextures(512, 7, def.biome);
-    const mat = new THREE.MeshStandardMaterial({
-      vertexColors: true, map: detail.color, normalMap: detail.normal, normalScale: new THREE.Vector2(0.9, 0.9), roughness: 0.96, metalness: 0,
-    });
-    mat.onBeforeCompile = (sh) => patchFog(sh);
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.receiveShadow = true;
-    mesh.name = 'terrain';
-    return mesh;
+    return src;
   }
-
-  private greenness(biome: Biome, x: number, z: number, y: number, r: number, n: Noise2D): number {
-    switch (biome) {
-      case 'urban': return 0.8 + 0.2 * n.fbm(x * 0.03, z * 0.03, 2);
-      case 'oasis': return 1 - smooth(120, 300, r) + (n.fbm(x * 0.02, z * 0.02, 3) > 0.35 ? 0.15 : 0);
-      case 'highland': return smooth(-0.1, 0.3, n.fbm(x * 0.01, z * 0.01, 3)) * (1 - smooth(18, 40, y)) * 0.8;
-      case 'mixed': {
-        const f = smooth(0.05, 0.4, n.fbm(x * 0.005 + 7, z * 0.005, 3)) * smooth(300, 420, r);
-        return f * 1.1;
-      }
-      default: return smooth(0.55, 0.8, n.fbm(x * 0.03 - 9, z * 0.03 + 3, 3) * 0.5 + 0.5) * 0.6;
-    }
-  }
-
-  private buildWater(): THREE.Mesh | null {
-    const wl = this.built.def.waterLevel;
-    if (wl === null || wl === undefined) return null;
-    const geo = new THREE.PlaneGeometry(this.size, this.size, 1, 1);
-    geo.rotateX(-Math.PI / 2);
-    const nt = makeWaterNormal();
-    nt.repeat.set(this.size / 40, this.size / 40);
-    this.waterNormal = nt;
-    const mat = new THREE.MeshStandardMaterial({
-      color: 0x1d5a70, roughness: 0.12, metalness: 0.25, transparent: true, opacity: 0.8, normalMap: nt, normalScale: new THREE.Vector2(0.55, 0.55),
-    });
-    mat.onBeforeCompile = (sh) => patchFog(sh);
-    const m = new THREE.Mesh(geo, mat);
-    m.position.y = wl;
-    m.receiveShadow = false;
-    m.renderOrder = 2;
-    return m;
-  }
-
-  update(time: number): void {
-    if (this.waterNormal) {
-      this.waterNormal.offset.set(time * 0.012, time * 0.008);
-    }
-  }
-}
-
-function makeWaterNormal(): THREE.DataTexture {
-  const S = 256;
-  const n = new Noise2D(31);
-  const h = new Float32Array(S * S);
-  const wrap = (x: number, y: number, s: number) => n.fbm(x / s, y / s, 4);
-  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
-    const u = x / S, v = y / S;
-    const f = (xx: number, yy: number) => wrap(xx, yy, 18) + 0.4 * wrap(xx * 2.3, yy * 2.3, 9);
-    h[y * S + x] = f(x, y) * (1 - u) * (1 - v) + f(x - S, y) * u * (1 - v) + f(x, y - S) * (1 - u) * v + f(x - S, y - S) * u * v;
-  }
-  const d = new Uint8Array(new ArrayBuffer(S * S * 4));
-  const at = (x: number, y: number) => h[((y + S) % S) * S + ((x + S) % S)];
-  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
-    const dx = (at(x + 1, y) - at(x - 1, y)) * 7, dy = (at(x, y + 1) - at(x, y - 1)) * 7;
-    const l = Math.hypot(dx, dy, 1);
-    const i = (y * S + x) * 4;
-    d[i] = (-dx / l * 0.5 + 0.5) * 255; d[i + 1] = (dy / l * 0.5 + 0.5) * 255; d[i + 2] = (1 / l * 0.5 + 0.5) * 255; d[i + 3] = 255;
-  }
-  const t = new THREE.DataTexture(d, S, S, THREE.RGBAFormat);
-  t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  t.minFilter = THREE.LinearMipmapLinearFilter; t.magFilter = THREE.LinearFilter; t.generateMipmaps = true;
-  t.needsUpdate = true;
-  return t;
-}
-
-function makeDetailTextures(size: number, seed: number, biome: Biome): { color: THREE.Texture; normal: THREE.Texture } {
-  const n = new Noise2D(seed);
-  const hgt = new Float32Array(size * size);
-  const s = size;
-  const fine = biome === 'highland' ? 10 : 20;
-  const sample = (x: number, y: number) => n.fbm(x / fine, y / fine, 5) * 0.7 + n.fbm(x / 5, y / 5, 3) * 0.3;
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const u = x / s, v = y / s;
-      hgt[y * size + x] = sample(x, y) * (1 - u) * (1 - v) + sample(x - s, y) * u * (1 - v) + sample(x, y - s) * (1 - u) * v + sample(x - s, y - s) * u * v;
-    }
-  }
-  const cData = new Uint8Array(new ArrayBuffer(size * size * 4));
-  const nData = new Uint8Array(new ArrayBuffer(size * size * 4));
-  const at = (x: number, y: number) => hgt[((y + size) % size) * size + ((x + size) % size)];
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const i = (y * size + x) * 4;
-      const h = at(x, y);
-      const g = Math.max(0, Math.min(255, 205 + h * 90));
-      cData[i] = cData[i + 1] = cData[i + 2] = g; cData[i + 3] = 255;
-      const dx = (at(x + 1, y) - at(x - 1, y)) * 6;
-      const dy = (at(x, y + 1) - at(x, y - 1)) * 6;
-      const l = Math.hypot(dx, dy, 1);
-      nData[i] = (-dx / l * 0.5 + 0.5) * 255; nData[i + 1] = (dy / l * 0.5 + 0.5) * 255; nData[i + 2] = (1 / l * 0.5 + 0.5) * 255; nData[i + 3] = 255;
-    }
-  }
-  const mk = (data: Uint8Array<ArrayBuffer>, srgb: boolean) => {
-    const t = new THREE.DataTexture(data, size, size, THREE.RGBAFormat);
-    t.wrapS = t.wrapT = THREE.RepeatWrapping;
-    t.repeat.set(110, 110);
-    t.magFilter = THREE.LinearFilter;
-    t.minFilter = THREE.LinearMipmapLinearFilter;
-    t.generateMipmaps = true;
-    t.anisotropy = 16;
-    if (srgb) t.colorSpace = THREE.SRGBColorSpace;
-    t.needsUpdate = true;
-    return t;
-  };
-  return { color: mk(cData, true), normal: mk(nData, false) };
 }

@@ -175,9 +175,9 @@ const heli: Builder = ({ spec, pal: p, style, id }) => {
   const china = style === 'china';
   // fuselage
   k.loft([
-    { z: L * 0.5, w: 0.12, h: 0.12, n: 2 },
-    { z: L * 0.44, w: 0.4, ht: 0.35, hb: 0.38, n: 2.4 },
-    { z: L * 0.34, w: 0.62, ht: 0.55, hb: 0.5, n: 2.5 },
+    { z: L * 0.46, w: 0.12, h: 0.12, n: 2 },
+    { z: L * 0.41, w: 0.46, ht: 0.4, hb: 0.42, n: 2.4 },
+    { z: L * 0.33, w: 0.7, ht: 0.6, hb: 0.52, n: 2.5 },
     { z: L * 0.14, w: 0.86, ht: 0.95, hb: 0.6, y: 0.1, n: 2.6 },
     { z: -L * 0.08, w: 0.98, ht: 0.95, hb: 0.62, y: 0.1, n: 2.6 },
     { z: -L * 0.22, w: 0.7, ht: 0.62, hb: 0.5, y: 0.14, n: 2.6 },
@@ -188,8 +188,8 @@ const heli: Builder = ({ spec, pal: p, style, id }) => {
   k.loft([{ z: L * 0.36, w: 0.05, h: 0.03, n: 2 }, { z: L * 0.31, w: 0.44, ht: 0.46, hb: 0, n: 2.2 }, { z: L * 0.22, w: 0.5, ht: 0.55, hb: 0, n: 2.4 }, { z: L * 0.16, w: 0.2, ht: 0.12, hb: 0, n: 2 }], 0, 0.28, 0, 0x142630, { seg: 14, camo: 0, mat: MAT.glass, grime: 0 });
   k.loft([{ z: L * 0.14, w: 0.05, h: 0.03, n: 2 }, { z: L * 0.1, w: 0.5, ht: 0.55, hb: 0, n: 2.2 }, { z: -L * 0.0, w: 0.55, ht: 0.7, hb: 0, n: 2.4 }, { z: -L * 0.06, w: 0.2, ht: 0.2, hb: 0, n: 2 }], 0, 0.56, 0, 0x142630, { seg: 14, camo: 0, mat: MAT.glass, grime: 0 });
   // nose sensor turret + chin gun
-  k.sphere(0.34, 0, -0.3, L * 0.43, p.dark, { camo: 0, mat: MAT.dark, seg: 10 });
-  k.sphere(0.12, 0, -0.3, L * 0.43 + 0.3, 0x3a8bff, { camo: 0, mat: MAT.emit, seg: 6 });
+  k.sphere(0.34, 0, -0.3, L * 0.4, p.dark, { camo: 0, mat: MAT.dark, seg: 10 });
+  k.sphere(0.12, 0, -0.3, L * 0.4 + 0.3, 0x3a8bff, { camo: 0, mat: MAT.emit, seg: 6 });
   k.pipe(0.05, 1.5, 0, -0.62, L * 0.36, p.metal, { camo: 0, mat: MAT.metal, seg: 8 });
   k.box(0.4, 0.3, 0.6, 0, -0.55, L * 0.28, p.dark, { camo: 0, mat: MAT.dark, bevel: 0.04 });
   // engine nacelles + exhausts
